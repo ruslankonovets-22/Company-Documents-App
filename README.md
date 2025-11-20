@@ -1,41 +1,43 @@
-### documents
+# Company Documents App
 
-App Documents
+🎯 Кастомное приложение для ERPNext: управление документами с автоматической синхронизацией в NextCloud.
 
-### Installation
+## ✨ Возможности
 
-You can install this app using the [bench](https://github.com/frappe/bench) CLI:
+- ✅ Автоматическая нумерация документов (`DOC-2025-00001`)
+- ✅ Синхронизация с NextCloud (WebDAV)
+- ✅ Гибкая структура папок (Level 1-5)
+- ✅ 9 кастомных DocTypes
+- ✅ 5 Server Scripts + 7 Client Scripts
+- ✅ 45 шаблонов структуры папок (Folder Structure Templates)
 
-```bash
-cd $PATH_TO_YOUR_BENCH
-bench get-app $URL_OF_THIS_REPO --branch develop
-bench install-app company_documents
-```
+## 📦 Установка
 
-### Contributing
+См. [docs/installation.md](docs/installation.md)
 
-This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
+## 📚 Документация
 
-```bash
-cd apps/company_documents
-pre-commit install
-```
+- [Установка](docs/installation.md)
+- [Настройка NextCloud](docs/configuration.md)
+- [Использование](docs/usage.md)
+- [Архитектура](docs/architecture.md)
 
-Pre-commit is configured to use the following tools for checking and formatting your code:
+## 🔗 Версии
 
-- ruff
-- eslint
-- prettier
-- pyupgrade
+- [v0.0.2](https://github.com/ruslankonovets-22/Company-Documents-App/releases/tag/v0.0.2) — текущая версия (2025-11-20)
 
-### CI
+## 🛠️ Технологии
 
-This app can use GitHub Actions for CI. The following workflows are configured:
+- **Frappe Framework** (version-15)
+- **ERPNext** (v15.83.0)
+- **Python** 3.10+
+- **WebDAV** (NextCloud sync)
 
-- CI: Installs this app and runs unit tests on every push to `develop` branch.
-- Linters: Runs [Frappe Semgrep Rules](https://github.com/frappe/semgrep-rules) and [pip-audit](https://pypi.org/project/pip-audit/) on every pull request.
+## 📝 Лицензия
 
+MIT
 
-### License
+## 🤝 Контакты
 
-mit
+- GitHub: [@ruslankonovets-22](https://github.com/ruslankonovets-22)
+- Репозиторий: [Company-Documents-App](https://github.com/ruslankonovets-22/Company-Documents-App)
