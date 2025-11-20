@@ -6,6 +6,19 @@
 
 ---
 
+## ⚠️ SECURITY WARNING
+
+**This documentation contains hardcoded development passwords!**
+
+- Administrator: `admin`
+- Database root: `123`
+
+**🔴 DO NOT USE IN PRODUCTION!**  
+These passwords are for development/testing environments only.  
+Always use strong, unique passwords in production deployments.
+
+---
+
 ## 1. Философия разработки: ПОЛИГОН
 
 ### 1.1 Что такое ПОЛИГОН?
