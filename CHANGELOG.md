@@ -8,6 +8,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 
+## [0.0.2.2] - 2025-11-21
+
+### Fixed
+- **КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ**: Fixtures не импортировались при установке приложения
+  - Убран фильтр `custom=1` для DocTypes (наши DocTypes имеют `custom=0`)
+  - Исправлен title в фильтре Workspace: "Documents app" → "Documents App"
+  - Теперь при `bench --install-app company_documents` устанавливаются:
+    - ✅ Все 45 Folder Structure Templates
+    - ✅ Workspace "Documents App"
+    - ✅ Все DocTypes из модулей Documents и Projects
+- **Причина проблемы**: DocTypes созданы через код (не через UI), поэтому имеют `custom=0`
+- **Проверка регистра**: Workspace title "Documents App" (заглавная A) должен совпадать с фильтром
+
+### Changed
+- `company_documents/hooks.py`:
+  - Удалён `["custom", "=", 1]` из фильтров DocType
+  - Исправлен фильтр Workspace: `["title", "=", "Documents App"]`
+- Версия приложения: `0.0.2.1` → `0.0.2.2`
+
+### Technical Details
+- **Проблема в v0.0.2.1**: 
+  - Фильтр `["custom", "=", 1]` не находил DocTypes с `custom=0`
+  - Фильтр `["title", "=", "Documents app"]` не совпадал с `"Documents App"`
+- **Решение**: Упрощены фильтры для DocTypes, исправлен регистр в Workspace
+
+### Migration Notes
+Для обновления с v0.0.2.1:
+```bash
+cd ~/frappe-bench
+bench get-app company_documents --branch main
+bench --site {site} migrate
+bench --site {site} clear-cache
+bench restart
+```
+
+Для новой установки:
+```bash
+bench --install-app company_documents
+# Теперь Folder Structure Templates и Workspace устанавливаются автоматически
+```
+
+---
+
 ## [0.0.2.1] - 2025-11-21
 
 ### Added
