@@ -115,3 +115,22 @@ bench new-site localhost --install-app erpnext --install-app hrms --install-app 
 - NextCloud WebDAV: https://docs.nextcloud.com/server/stable/developer_manual/client_apis/WebDAV/
 - frappe_docker: https://github.com/frappe/frappe_docker
 - pibiDAV examples: https://github.com/pibico/pibidav
+
+---
+
+## Автоматическая очистка пустых папок (v0.0.2+)
+
+**Дата добавления:** 2025-11-21  
+**Коммит:** de6cf2a  
+**MD5:** b7c2ddbaf639e3b214e9d165ef462bc0
+
+### Файл
+`company_documents/company_documents/nextcloud_sync.py`
+
+### Функция
+```python
+def delete_empty_folders_in_nextcloud(folder_path, config):
+    """
+    Рекурсивно удаляет пустые папки в NextCloud.
+    Начинает с самой глубокой папки и идёт вверх.
+    """

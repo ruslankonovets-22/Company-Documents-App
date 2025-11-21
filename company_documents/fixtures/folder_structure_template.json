@@ -3,71 +3,11 @@
   "description": null,
   "docstatus": 0,
   "doctype": "Folder Structure Template",
-  "folder_name": "Progettazione",
-  "is_group": 1,
-  "level": 0,
-  "modified": "2025-11-03 21:39:43.911572",
-  "name": "FST-0001",
-  "old_parent": "",
-  "parent_folder_structure_template": null
- },
- {
-  "description": null,
-  "docstatus": 0,
-  "doctype": "Folder Structure Template",
-  "folder_name": "Realizzazione",
-  "is_group": 1,
-  "level": 0,
-  "modified": "2025-11-03 21:39:44.056586",
-  "name": "FST-0002",
-  "old_parent": "",
-  "parent_folder_structure_template": null
- },
- {
-  "description": null,
-  "docstatus": 0,
-  "doctype": "Folder Structure Template",
-  "folder_name": "Amministrativi",
-  "is_group": 1,
-  "level": 0,
-  "modified": "2025-11-03 21:39:44.064967",
-  "name": "FST-0003",
-  "old_parent": "",
-  "parent_folder_structure_template": null
- },
- {
-  "description": null,
-  "docstatus": 0,
-  "doctype": "Folder Structure Template",
-  "folder_name": "Preliminare",
-  "is_group": 1,
-  "level": 0,
-  "modified": "2025-11-03 21:39:44.073083",
-  "name": "FST-0004",
-  "old_parent": "FST-0001",
-  "parent_folder_structure_template": "FST-0001"
- },
- {
-  "description": null,
-  "docstatus": 0,
-  "doctype": "Folder Structure Template",
   "folder_name": "Definitivo",
   "is_group": 1,
   "level": 0,
   "modified": "2025-11-03 21:39:44.090656",
   "name": "FST-0005",
-  "old_parent": "FST-0001",
-  "parent_folder_structure_template": "FST-0001"
- },
- {
-  "description": null,
-  "docstatus": 0,
-  "doctype": "Folder Structure Template",
-  "folder_name": "Esecutivo",
-  "is_group": 1,
-  "level": 0,
-  "modified": "2025-11-03 21:39:44.144449",
-  "name": "FST-0006",
   "old_parent": "FST-0001",
   "parent_folder_structure_template": "FST-0001"
  },
@@ -82,18 +22,6 @@
   "name": "FST-0007",
   "old_parent": "FST-0001",
   "parent_folder_structure_template": "FST-0001"
- },
- {
-  "description": null,
-  "docstatus": 0,
-  "doctype": "Folder Structure Template",
-  "folder_name": "Preventivo",
-  "is_group": 1,
-  "level": 0,
-  "modified": "2025-11-03 21:39:44.193472",
-  "name": "FST-0008",
-  "old_parent": "FST-0002",
-  "parent_folder_structure_template": "FST-0002"
  },
  {
   "description": null,
@@ -130,18 +58,6 @@
   "name": "FST-0011",
   "old_parent": "FST-0002",
   "parent_folder_structure_template": "FST-0002"
- },
- {
-  "description": null,
-  "docstatus": 0,
-  "doctype": "Folder Structure Template",
-  "folder_name": "CILA",
-  "is_group": 1,
-  "level": 0,
-  "modified": "2025-11-03 21:39:44.252212",
-  "name": "FST-0012",
-  "old_parent": "FST-0003",
-  "parent_folder_structure_template": "FST-0003"
  },
  {
   "description": null,
@@ -538,5 +454,89 @@
   "name": "FST-0046",
   "old_parent": "FST-0043",
   "parent_folder_structure_template": "FST-0043"
+ },
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "Folder Structure Template",
+  "folder_name": "Preliminare",
+  "is_group": 1,
+  "level": 0,
+  "modified": "2025-11-03 21:39:44.073083",
+  "name": "FST-0004",
+  "old_parent": "FST-0001",
+  "parent_folder_structure_template": "FST-0001"
+ },
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "Folder Structure Template",
+  "folder_name": "Esecutivo",
+  "is_group": 1,
+  "level": 0,
+  "modified": "2025-11-03 21:39:44.144449",
+  "name": "FST-0006",
+  "old_parent": "FST-0001",
+  "parent_folder_structure_template": "FST-0001"
+ },
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "Folder Structure Template",
+  "folder_name": "Preventivo",
+  "is_group": 1,
+  "level": 0,
+  "modified": "2025-11-03 21:39:44.193472",
+  "name": "FST-0008",
+  "old_parent": "FST-0002",
+  "parent_folder_structure_template": "FST-0002"
+ },
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "Folder Structure Template",
+  "folder_name": "CILA",
+  "is_group": 1,
+  "level": 0,
+  "modified": "2025-11-03 21:39:44.252212",
+  "name": "FST-0012",
+  "old_parent": "FST-0003",
+  "parent_folder_structure_template": "FST-0003"
+ },
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "Folder Structure Template",
+  "folder_name": "Realizzazione",
+  "is_group": 1,
+  "level": 0,
+  "modified": "2025-11-03 21:39:44.056586",
+  "name": "FST-0002",
+  "old_parent": "",
+  "parent_folder_structure_template": null
+ },
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "Folder Structure Template",
+  "folder_name": "Progettazione",
+  "is_group": 1,
+  "level": 0,
+  "modified": "2025-11-03 21:39:43.911572",
+  "name": "FST-0001",
+  "old_parent": "",
+  "parent_folder_structure_template": null
+ },
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "Folder Structure Template",
+  "folder_name": "Amministrativi",
+  "is_group": 1,
+  "level": 0,
+  "modified": "2025-11-03 21:39:44.064967",
+  "name": "FST-0003",
+  "old_parent": "",
+  "parent_folder_structure_template": null
  }
 ]

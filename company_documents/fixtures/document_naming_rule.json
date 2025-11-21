@@ -1,12 +1,12 @@
 [
  {
   "conditions": [],
-  "counter": 41,
+  "counter": 45,
   "disabled": 0,
   "docstatus": 0,
   "doctype": "Document Naming Rule",
   "document_type": "Document",
-  "modified": "2025-11-18 18:50:35.915878",
+  "modified": "2025-11-21 20:16:48.081361",
   "name": "r66srbpmvh",
   "prefix": "DOC-.YYYY.-",
   "prefix_digits": 5,

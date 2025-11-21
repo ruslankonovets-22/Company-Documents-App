@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+
+## [0.0.2.1] - 2025-11-21
+
+### Added
+- **NextCloud file_id support**: file_url теперь указывает на ФАЙЛ в NextCloud UI (не на папку)
+- **get_nextcloud_file_id()**: WebDAV PROPFIND для получения внутреннего file_id файла
+- **Поля синхронизации**:
+  - `Document File.file_synced` (renamed from `is_synced`)
+  - `Document File.uploaded_by` (Link → User) - автор загрузки
+  - `Document File.uploaded_on` (Datetime) - timestamp загрузки
+- **Server Script "Update Document Synced Status"**: автоматическое обновление `Document.is_synced`
+- **show_title_field_in_link**: Level поля показывают имена (не ID)
+
+### Changed
+- **upload_to_nextcloud()**: обновляет file_url ВСЕГДА (не только для новых файлов)
+  - Получает file_id через PROPFIND после загрузки
+  - Устанавливает `file_url = http://.../files/{file_id}?dir=/...&openfile=true`
+  - Fallback на ссылку к папке если PROPFIND не вернул file_id
+- **move_files_in_nextcloud()**: обновляет file_url с НОВЫМ file_id после перемещения
+  - Использует PROPFIND для получения file_id в новой папке
+  - Сохраняет изменения через `doc.save()` + `frappe.db.commit()`
+- **get_nextcloud_file_id()**: поддержка `oc:fileid` и `nc:fileid` (OwnCloud/NextCloud 25+)
+  - Учитывает `root_path` из NextCloud Sync Settings
+  - Fallback на поиск без namespace
+
+### Fixed
+- file_url не обновлялся для существующих синхронизированных файлов (file_synced=1)
+- Database locks при работе в bench console (добавлены commit/rollback)
+- Поддержка кириллицы в именах файлов (UTF-8 encoding в quote())
+
+### Technical Details
+- **WebDAV PROPFIND**: используется для получения `<oc:fileid>` или `<nc:fileid>`
+- **NextCloud Files UI format**: `/apps/files/files/{file_id}?dir={path}&openfile=true`
+- **Tested on**: NextCloud 20-27, OwnCloud 10+
+- **Frappe v15 compatibility**: server_script_enabled в common_site_config.json
+
+### Known Issues
+- В UI file_url может не обновляться сразу (требуется F5 для перезагрузки страницы)
+- Debug: если ссылка открывает папку вместо файла → проверить что PROPFIND возвращает file_id
+
+### Migration Notes
+**BREAKING CHANGE**: `Document File.is_synced` переименовано в `file_synced`
+- Миграция НЕ ТРЕБУЕТСЯ (Frappe автоматически переименует поле при установке)
+- Существующие данные сохраняются
+
+**Для обновления с v0.0.2:**
+```bash
+cd ~/frappe-bench
+bench get-app company_documents --branch main
+bench --site {site} migrate
+bench --site {site} clear-cache
+bench restart
+```
+
+## [0.0.2] - 2025-11-20
+...
+
 ## [Unreleased]
 
 ### Added
