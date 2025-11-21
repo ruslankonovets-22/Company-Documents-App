@@ -18,12 +18,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Решение**: Переупорядочен JSON - сначала root элементы (parent=null), затем children рекурсивно
   - Порядок: FST-0001 (root) → FST-0004 (child) → FST-0015 (grandchild) → ...
   - Теперь fixtures импортируются успешно без ошибок NestedSet
+- **ИСПРАВЛЕНО**: Версия в `__init__.py` не обновлялась (осталась 0.0.2.1)
+  - Frappe использует `__init__.py` для отображения версии в UI
+  - Теперь синхронизировано с `hooks.py`: `0.0.2.3`
+
+### Added
+- **Utility scripts** для предотвращения будущих проблем с порядком FST:
+  - `scripts/validate_fst_order.py` - проверка правильности порядка
+  - `scripts/fix_fst_order.py` - автоматическое исправление с backup
+  - `scripts/pre-commit-hook.sh` - Git hook для блокировки неправильных коммитов
+  - `scripts/install-hooks.sh` - установка hooks одной командой
+  - `scripts/README.md` - полная документация по скриптам
 
 ### Technical Details
 - **Причина в v0.0.2.2**: Фильтры fixtures были исправлены, но порядок записей остался неправильным
 - **NestedSet требования**: Parent должен существовать в БД ПЕРЕД созданием child
 - **Решение**: Рекурсивная сортировка по иерархии parent → children → grandchildren
 - Всего записей: 45 (3 root + 42 children на разных уровнях)
+- **Автоматизация**: Git hooks предотвращают коммиты с неправильным порядком
 
 ### Migration Notes
 Для обновления с v0.0.2.2:
