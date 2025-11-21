@@ -7,7 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.0.2] - 2025-11-20
+## [Unreleased]
+
+### Added
+- **Автоматическая очистка пустых папок в NextCloud** после операций с файлами
+  - Срабатывает после удаления файлов из Document (вызов в delete_from_nextcloud())
+  - Срабатывает после перемещения файлов при изменении level_1..level_5 (вызов в move_files_in_nextcloud())
+  - Рекурсивное удаление от самой глубокой папки до корня Projects/
+  - Защита через WebDAV PROPFIND с Depth:1 - не удаляет папки с файлами других документов
+  - Останавливается на корневой папке Projects/ (никогда не удаляется)
+
+### Changed
+- **nextcloud_sync.py** (строки 359-363, 304-308):
+  - move_files_in_nextcloud(): добавлен вызов delete_empty_folders_in_nextcloud() после перемещения файлов
+  - delete_from_nextcloud(): добавлен вызов delete_empty_folders_in_nextcloud() после удаления файлов
+- Удалено избыточное сообщение "Проверены пустые папки" из move_files_in_nextcloud()
+  - Было: 2 сообщения (дублирование)
+  - Стало: 1 сообщение (только из delete_empty_folders_in_nextcloud())
+
+### Technical
+- **Функция delete_empty_folders_in_nextcloud()** (строки 198-264):
+  - Теперь используется (была мёртвым кодом с v0.0.1)
+  - Все сообщения об удалении папок идут из одного источника
+  - Используется WebDAV PROPFIND с Depth:1 для проверки содержимого папки
+  - XML парсинг через xml.etree.ElementTree
+  - MD5: b7c2ddbaf639e3b214e9d165ef462bc0
+  - Size: 18K (482 строки после патча)
+
+### Fixed
+- Пустые папки больше не остаются в NextCloud после удаления последнего файла документа
+- При изменении структуры (level_1..level_5) старые папки удаляются автоматически
+- Устранено дублирование сообщений при перемещении файлов
+
+### Tested
+- **Окружение:** localhost:8081 + NextCloud (https://gda.pibico.cloud)
+- **Проект:** TESTPROJ
+- **Структура:** 5 уровней вложенности
+- Тест 1: Удаление файла - 4 папки удалены рекурсивно, Projects/ осталась
+- Тест 2: Перемещение файла - старая структура удалена автоматически
+- Тест 3: Защита - папка с файлами других документов НЕ удалена
+
+### Commits
+- de6cf2a - feat(nextcloud): integrate delete_empty_folders after file operations (2025-11-21)
+
+---
+
+## [0.0.2] - 2025-11-21
 
 ### Added
 
@@ -158,4 +203,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-**Последнее обновление:** 2025-11-20
+**Последнее обновление:** 2025-11-21
