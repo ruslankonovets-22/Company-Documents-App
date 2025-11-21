@@ -3,21 +3,35 @@ import frappe
 import requests
 from requests.auth import HTTPBasicAuth
 from urllib.parse import quote
+from frappe.utils.password import get_decrypted_password
 import os
 
 
 def get_nextcloud_config():
-    """Получить конфигурацию NextCloud из Custom Settings"""
+    """Получить конфигурацию NextCloud из NextCloud Sync Settings"""
     try:
-        settings = frappe.get_single('NextCloud Settings')
+        settings = frappe.get_single("NextCloud Sync Settings")
         
-        if not settings.nextcloud_url or not settings.username or not settings.get_password('nc_password'):
+        if not settings.enabled:
             return None
         
-        base_url = settings.nextcloud_url.rstrip('/')
-        username = settings.username
-        nc_password = settings.get_password('nc_password')
-        root_path = settings.root_path or '/'
+        if not settings.nc_url or not settings.nc_username:
+            return None
+        
+        # Расшифровываем пароль
+        nc_password = get_decrypted_password(
+            "NextCloud Sync Settings", 
+            "NextCloud Sync Settings", 
+            "nc_password", 
+            raise_exception=False
+        )
+        
+        if not nc_password:
+            return None
+        
+        base_url = settings.nc_url.rstrip('/')
+        username = settings.nc_username
+        root_path = (settings.nc_root_path or '').rstrip('/')
         
         webdav_url = f"{base_url}/remote.php/dav/files/{username}"
         
@@ -26,7 +40,7 @@ def get_nextcloud_config():
             'user': username,
             'username': username,
             'password': nc_password,
-            'root_path': root_path,
+            'root_path': root_path if root_path != '' else None,
             'webdav_url': webdav_url
         }
     except Exception as e:
@@ -181,42 +195,117 @@ def upload_to_nextcloud(doc, method=None):
             frappe.log_error(title='File Upload Error', message=str(e))
 
 
+def delete_empty_folders_in_nextcloud(folder_path, config):
+    """
+    Рекурсивно удаляет пустые папки в NextCloud.
+    Начинает с самой глубокой папки и идёт вверх.
+    """
+    import requests
+    from requests.auth import HTTPBasicAuth
+    from urllib.parse import quote
+    
+    # Разбиваем путь на части
+    parts = folder_path.split('/')
+    
+    # Начинаем с конца (самая глубокая папка)
+    for i in range(len(parts), 0, -1):
+        current_path = '/'.join(parts[:i])
+        
+        # Не удаляем корневую папку "Projects"!
+        if current_path == 'Projects':
+            break
+        
+        try:
+            # Проверяем содержимое папки через WebDAV PROPFIND
+            safe_path = quote(current_path.encode('utf-8'))
+            url = f"{config['webdav_url']}/{safe_path}"
+            
+            response = requests.request(
+                'PROPFIND',
+                url,
+                headers={'Depth': '1'},
+                auth=HTTPBasicAuth(config['username'], config['password']),
+                timeout=10
+            )
+            
+            if response.status_code != 207:
+                # Папка не существует или ошибка
+                continue
+            
+            # Парсим ответ (XML)
+            import xml.etree.ElementTree as ET
+            root = ET.fromstring(response.content)
+            
+            # Считаем элементы (первый элемент = сама папка)
+            items = root.findall('.//{DAV:}response')
+            
+            # Если только 1 элемент = папка пустая!
+            if len(items) <= 1:
+                # Удаляем пустую папку
+                response = requests.delete(
+                    url,
+                    auth=HTTPBasicAuth(config['username'], config['password']),
+                    timeout=10
+                )
+                
+                if response.status_code in [204, 404]:
+                    frappe.msgprint(f"🗑️ Удалена пустая папка: {current_path}", indicator="orange")
+                else:
+                    frappe.log_error(
+                        title="Delete Empty Folder Error",
+                        message=f"Path: {current_path}, Status: {response.status_code}"
+                    )
+            else:
+                # Папка НЕ пустая, останавливаемся
+                break
+        
+        except Exception as e:
+            frappe.log_error(title="Delete Empty Folder Error", message=str(e))
+            break
+
+
 def delete_from_nextcloud(doc, method=None):
-    """Удаление файлов из NextCloud"""
+    """Удаление файлов из NextCloud при удалении из Document"""
+    if doc.doctype != "Document":
+        return
+    
     if not hasattr(doc, '_deleted_files') or not doc._deleted_files:
         return
     
     config = get_nextcloud_config()
-    if not config:
+    folder_path = get_folder_path(doc)
+    
+    if not folder_path:
         return
     
-    folder_path = get_folder_path(doc)
-    if not folder_path:
+    if not config:
         return
     
     for file_path in doc._deleted_files:
         try:
-            file_name = os.path.basename(file_path)
-            remote_path = f"{folder_path}/{file_name}"
-            
-            full_path = f"{config.get('root_path', '').rstrip('/')}/{remote_path}" if config.get('root_path') and config['root_path'] != '/' else remote_path
-            safe_path = quote(full_path.encode('utf-8'))
-            url = f"{config['url']}/remote.php/dav/files/{config['user']}/{safe_path}"
+            filename = os.path.basename(file_path)
+            remote_path = f"{folder_path}/{filename}"
+            file_url = f"{config['webdav_url']}/{quote(remote_path)}"
             
             response = requests.delete(
-                url,
-                auth=HTTPBasicAuth(config['user'], config['password']),
-                timeout=30
+                file_url,
+                auth=HTTPBasicAuth(config['username'], config['password'])
             )
             
-            if response.status_code not in [204, 404]:
-                frappe.log_error(
-                    title='NextCloud Delete Error',
-                    message=f'Failed to delete {remote_path}: HTTP {response.status_code}'
-                )
+            if response.status_code in [204, 404]:
+                frappe.msgprint(f"Файл удалён из NextCloud: {filename}", indicator="orange")
         
         except Exception as e:
-            frappe.log_error(title='Delete File Error', message=str(e))
+            frappe.log_error(title="NextCloud Delete Error", message=str(e))
+
+
+
+    
+    # Удаляем пустые папки после удаления файлов
+    try:
+        delete_empty_folders_in_nextcloud(folder_path, config)
+    except Exception as e:
+        frappe.log_error(title='Delete Empty Folders Error (Delete)', message=str(e))
 
 
 def move_files_in_nextcloud(doc, old_folder_path):
@@ -265,6 +354,12 @@ def move_files_in_nextcloud(doc, old_folder_path):
         
         except Exception as e:
             frappe.log_error(title='Move File Error', message=str(e))
+    
+    # Удаляем пустые папки после перемещения
+    try:
+        delete_empty_folders_in_nextcloud(old_folder_path, config)
+    except Exception as e:
+        frappe.log_error(title='Delete Empty Folders Error (Move)', message=str(e))
 
 
 def upload_file_to_nextcloud(local_path, remote_path, config):
@@ -272,6 +367,7 @@ def upload_file_to_nextcloud(local_path, remote_path, config):
     Загружает ОДИН файл в NextCloud.
     Используется функцией sync_document_to_nextcloud() (вызов из UI).
     """
+
     try:
         full_path = f"{config.get('root_path', '').rstrip('/')}/{remote_path}" if config.get('root_path') and config['root_path'] != '/' else remote_path
         safe_path = quote(full_path.encode('utf-8'))
