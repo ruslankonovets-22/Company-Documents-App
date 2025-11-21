@@ -8,6 +8,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 
+## [0.0.2.3] - 2025-11-22
+
+### Fixed
+- **КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ**: Неправильный порядок записей в `folder_structure_template.json`
+  - **Проблема**: Дочерние элементы шли ПЕРЕД родительскими (FST-0005 перед FST-0001)
+  - **Ошибка при установке**: `TypeError: cannot unpack non-iterable NoneType object`
+  - **Причина**: Frappe NestedSet пытался создать child до parent → parent не существует → crash
+  - **Решение**: Переупорядочен JSON - сначала root элементы (parent=null), затем children рекурсивно
+  - Порядок: FST-0001 (root) → FST-0004 (child) → FST-0015 (grandchild) → ...
+  - Теперь fixtures импортируются успешно без ошибок NestedSet
+
+### Technical Details
+- **Причина в v0.0.2.2**: Фильтры fixtures были исправлены, но порядок записей остался неправильным
+- **NestedSet требования**: Parent должен существовать в БД ПЕРЕД созданием child
+- **Решение**: Рекурсивная сортировка по иерархии parent → children → grandchildren
+- Всего записей: 45 (3 root + 42 children на разных уровнях)
+
+### Migration Notes
+Для обновления с v0.0.2.2:
+```bash
+cd ~/frappe-bench
+bench get-app company_documents --branch main
+bench --site {site} install-app company_documents --force
+# Или для существующей установки:
+bench --site {site} migrate
+bench --site {site} clear-cache
+bench restart
+```
+
+---
+
 ## [0.0.2.2] - 2025-11-21
 
 ### Fixed
