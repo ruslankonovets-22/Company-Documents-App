@@ -8,6 +8,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 
+## [0.0.2.4] - 2025-11-22
+
+### Added
+- **NextCloud file_id support**: Новая функция `get_nextcloud_file_id()` для получения file_id через WebDAV PROPFIND
+  - Поддержка двух namespace: `oc:fileid` (OwnCloud) и `nc:fileid` (NextCloud 25+)
+  - Fallback на поиск без namespace для совместимости
+  - Учитывает `root_path` из конфигурации NextCloud
+
+### Fixed
+- **Правильное имя поля**: Исправлено `is_synced` → `file_synced` во всех функциях
+  - `upload_to_nextcloud()`: теперь использует `file_synced`
+  - `sync_document_to_nextcloud()`: исправлена проверка синхронизации
+- **Прямые ссылки на файлы**: Вместо ссылки на папку теперь генерируются прямые ссылки на файлы
+  - Формат: `/apps/files/files/{file_id}?dir=/path&openfile=true`
+  - Fallback на ссылку на папку если file_id недоступен
+- **Улучшенный upload_to_nextcloud()**:
+  - Автоматическое обновление `file_url` для уже синхронизированных файлов
+  - Добавлены поля `uploaded_by` и `uploaded_on` при загрузке
+  - Счётчик загруженных файлов и сообщения пользователю
+  - Автосохранение изменений с commit
+- **Улучшенный move_files_in_nextcloud()**:
+  - Обновление `file_url` с file_id после перемещения
+  - Счётчик перемещённых файлов
+  - Автосохранение изменений после перемещения
+
+### Changed
+- Объединены улучшения из дублированной структуры `company_documents/company_documents/`
+- Удалена дублированная структура директорий
+
+---
+
+
 ## [0.0.2.3] - 2025-11-22
 
 ### Fixed

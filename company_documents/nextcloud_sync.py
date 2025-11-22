@@ -7,6 +7,77 @@ from frappe.utils.password import get_decrypted_password
 import os
 
 
+def get_nextcloud_file_id(file_path, config):
+    """
+    Получить file_id файла в NextCloud через WebDAV PROPFIND.
+    
+    Args:
+        file_path: Путь к файлу относительно NextCloud root (Projects/TEST/.../file.jpg)
+        config: NextCloud конфигурация (из get_nextcloud_config)
+    
+    Returns:
+        file_id (str) или None
+    """
+    import xml.etree.ElementTree as ET
+    
+    # ✅ УЧИТЫВАЕМ root_path!
+    full_path = file_path
+    if config.get('root_path') and config['root_path'] != '/':
+        full_path = f"{config['root_path'].rstrip('/')}/{file_path}"
+    
+    safe_path = quote(full_path.encode('utf-8'))
+    url = f"{config['url']}/remote.php/dav/files/{config['user']}/{safe_path}"
+    
+    propfind_xml = '''<?xml version="1.0"?>
+<d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+  <d:prop>
+    <oc:fileid/>
+    <nc:fileid/>
+  </d:prop>
+</d:propfind>'''
+    
+    try:
+        response = requests.request(
+            'PROPFIND',
+            url,
+            data=propfind_xml,
+            headers={'Depth': '0'},
+            auth=HTTPBasicAuth(config['user'], config['password']),
+            timeout=10
+        )
+        
+        if response.status_code == 207:
+            root = ET.fromstring(response.content)
+            
+            # ✅ ПОПРОБОВАТЬ ОБА ВАРИАНТА namespace!
+            # ВАРИАНТ 1: oc:fileid (OwnCloud / старый NextCloud)
+            ns_oc = {'d': 'DAV:', 'oc': 'http://owncloud.org/ns'}
+            fileid_elem = root.find('.//oc:fileid', ns_oc)
+            
+            if fileid_elem is not None and fileid_elem.text:
+                return fileid_elem.text
+            
+            # ВАРИАНТ 2: nc:fileid (NextCloud 25+)
+            ns_nc = {'d': 'DAV:', 'nc': 'http://nextcloud.org/ns'}
+            fileid_elem = root.find('.//nc:fileid', ns_nc)
+            
+            if fileid_elem is not None and fileid_elem.text:
+                return fileid_elem.text
+            
+            # ВАРИАНТ 3: без namespace (fallback)
+            for elem in root.iter():
+                if 'fileid' in elem.tag.lower() and elem.text:
+                    return elem.text
+        
+        return None
+    
+    except Exception as e:
+        frappe.log_error(title='Get NextCloud File ID Error', message=str(e))
+        return None
+
+
+
+
 def get_nextcloud_config():
     """Получить конфигурацию NextCloud из NextCloud Sync Settings"""
     try:
@@ -157,11 +228,37 @@ def upload_to_nextcloud(doc, method=None):
         partial_path = '/'.join(path_parts[:i])
         create_nextcloud_folder(partial_path, config)
     
-    folder_url = f"{config['url']}/apps/files/?dir={quote(folder_path)}"
+    uploaded_count = 0
     
     for file_row in doc.files:
-        if file_row.is_synced:
-            continue
+        # ✅ ОБНОВИТЬ file_url для СИНХРОНИЗИРОВАННЫХ файлов
+        if file_row.file_synced:
+            try:
+                from frappe.utils.file_manager import get_file_path
+                local_path = get_file_path(file_row.file)
+                
+                if os.path.exists(local_path):
+                    filename = os.path.basename(local_path)
+                    full_path = f"{folder_path}/{filename}"
+                    
+                    # Получить file_id через PROPFIND
+                    file_id = get_nextcloud_file_id(full_path, config)
+                    
+                    if file_id:
+                        # NextCloud Files UI формат (с openfile=true)
+                        file_url = f"{config['url']}/apps/files/files/{file_id}?dir=/{quote(folder_path)}&openfile=true"
+                        file_row.file_url = file_url
+                    else:
+                        # Fallback: ссылка на папку
+                        file_url = f"{config['url']}/apps/files/?dir={quote(folder_path)}"
+                        file_row.file_url = file_url
+            
+            except Exception as e:
+                frappe.log_error(title='Update file_url Error', message=str(e))
+            
+            continue  # Пропустить загрузку (файл уже на NextCloud!)
+        
+        # ✅ ЗАГРУЗИТЬ НОВЫЙ файл (file_synced = 0)
         
         if not file_row.file:
             continue
@@ -171,6 +268,7 @@ def upload_to_nextcloud(doc, method=None):
             local_path = get_file_path(file_row.file)
             
             if not os.path.exists(local_path):
+                frappe.msgprint(f'⚠️ Файл не найден: {file_row.file_name}', indicator='orange')
                 continue
             
             remote_path = f"{folder_path}/{os.path.basename(local_path)}"
@@ -188,11 +286,39 @@ def upload_to_nextcloud(doc, method=None):
                 )
             
             if response.status_code in [200, 201, 204]:
-                file_row.file_url = folder_url
-                file_row.is_synced = 1
+                filename = os.path.basename(local_path)
+                full_path = f"{folder_path}/{filename}"
+                
+                # Получить file_id через PROPFIND
+                file_id = get_nextcloud_file_id(full_path, config)
+                
+                if file_id:
+                    # NextCloud Files UI формат (с openfile=true)
+                    file_url = f"{config['url']}/apps/files/files/{file_id}?dir=/{quote(folder_path)}&openfile=true"
+                else:
+                    # Fallback: ссылка на папку
+                    file_url = f"{config['url']}/apps/files/?dir={quote(folder_path)}"
+                
+                file_row.file_url = file_url
+                file_row.file_synced = 1
+                file_row.uploaded_by = frappe.session.user
+                file_row.uploaded_on = frappe.utils.now()
+                
+                uploaded_count += 1
+                frappe.msgprint(f'✅ {filename} загружен на NextCloud', indicator='green')
+            else:
+                frappe.msgprint(f'❌ Ошибка загрузки {os.path.basename(local_path)}: HTTP {response.status_code}', indicator='red')
         
         except Exception as e:
             frappe.log_error(title='File Upload Error', message=str(e))
+            frappe.msgprint(f'❌ Ошибка: {str(e)}', indicator='red')
+    
+    if uploaded_count > 0:
+        doc.flags.ignore_version = True
+        doc.flags.ignore_permissions = True
+        doc.save()
+        frappe.db.commit()
+        frappe.msgprint(f'💾 Синхронизировано файлов: {uploaded_count}', indicator='blue')
 
 
 def delete_empty_folders_in_nextcloud(folder_path, config):
@@ -300,6 +426,13 @@ def delete_from_nextcloud(doc, method=None):
 
 
 
+    
+    # Удаляем пустые папки после удаления файлов
+    try:
+        delete_empty_folders_in_nextcloud(folder_path, config)
+    except Exception as e:
+        frappe.log_error(title='Delete Empty Folders Error (Delete)', message=str(e))
+
 
 def move_files_in_nextcloud(doc, old_folder_path):
     """Перемещение файлов при изменении пути"""
@@ -315,6 +448,8 @@ def move_files_in_nextcloud(doc, old_folder_path):
     for i in range(1, len(path_parts) + 1):
         partial_path = '/'.join(path_parts[:i])
         create_nextcloud_folder(partial_path, config)
+    
+    moved_count = 0
     
     for file_row in doc.files:
         if not file_row.file:
@@ -343,10 +478,36 @@ def move_files_in_nextcloud(doc, old_folder_path):
             )
             
             if response.status_code in [201, 204]:
-                file_row.file_url = f"{config['url']}/apps/files/?dir={quote(new_folder_path)}"
+                filename = os.path.basename(file_row.file)
+                filename = os.path.basename(file_row.file)
+                full_path = f"{new_folder_path}/{filename}"
+                
+                # Получить file_id через PROPFIND
+                file_id = get_nextcloud_file_id(full_path, config)
+                
+                if file_id:
+                    # NextCloud Files UI формат (с openfile=true)
+                    file_url = f"{config['url']}/apps/files/files/{file_id}?dir=/{quote(new_folder_path)}&openfile=true"
+                else:
+                    # Fallback: ссылка на папку
+                    file_url = f"{config['url']}/apps/files/?dir={quote(new_folder_path)}"
+                
+                file_row.file_url = file_url
+                moved_count += 1
         
         except Exception as e:
-            frappe.log_error(title='Move File Error', message=str(e))
+            frappe.log_error(title='NextCloud Move Error', message=str(e))
+    
+    if moved_count > 0:
+        doc.flags.ignore_version = True
+        doc.flags.ignore_permissions = True
+        doc.save()
+        frappe.db.commit()
+    
+    try:
+        delete_empty_folders_in_nextcloud(old_folder_path, config)
+    except Exception as e:
+        frappe.log_error(title='Delete Empty Folders Error (Move)', message=str(e))
 
 
 def upload_file_to_nextcloud(local_path, remote_path, config):
@@ -354,6 +515,7 @@ def upload_file_to_nextcloud(local_path, remote_path, config):
     Загружает ОДИН файл в NextCloud.
     Используется функцией sync_document_to_nextcloud() (вызов из UI).
     """
+
     try:
         full_path = f"{config.get('root_path', '').rstrip('/')}/{remote_path}" if config.get('root_path') and config['root_path'] != '/' else remote_path
         safe_path = quote(full_path.encode('utf-8'))
@@ -410,7 +572,7 @@ def sync_document_to_nextcloud(docname):
         uploaded = 0
         
         for f in doc.files:
-            if f.is_synced:
+            if f.file_synced:
                 continue
             
             if not f.file:
@@ -428,7 +590,7 @@ def sync_document_to_nextcloud(docname):
                 
                 if upload_file_to_nextcloud(local, remote, config):
                     f.file_url = folder_url
-                    f.is_synced = 1
+                    f.file_synced = 1
                     uploaded += 1
                     frappe.msgprint(f'OK {os.path.basename(local)}', indicator='green')
                 else:
