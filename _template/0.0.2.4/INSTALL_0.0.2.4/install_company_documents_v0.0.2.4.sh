@@ -33,17 +33,17 @@
 # - Projects (дополнительные DocTypes)
 #
 # DocTypes (9 штук):
-# Модуль Documents (6):
+# Модуль Documents (5):
 #   - Document — основной DocType для документов
 #   - Folder Structure Template — шаблоны структуры папок (45 штук)
 #   - Document File — Child Table для прикреплённых файлов
 #   - NextCloud Sync Settings — настройки синхронизации с NextCloud
 #   - Task Document Link — связь документов с задачами
-#   - Folder Tree — древовидная структура папок
-# Модуль Projects (3):
+# Модуль Projects (4) (будут удалены, в проекте не участвуют):
 #   - Project Document Type — типы документов проектов
 #   - Task Employee — сотрудники в задачах
 #   - CILA Document Row — строки документов CILA
+#   - Folder Tree — древовидная структура папок
 #
 # Fixtures (автоматически импортируются):
 #   doctype.json                    175K  (9 DocTypes)
