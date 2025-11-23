@@ -1,0 +1,3 @@
+# Скачай файл, сделай исполняемым и запусти:
+chmod +x install_company_documents_v0.0.2.4.sh
+./install_company_documents_v0.0.2.4.sh
