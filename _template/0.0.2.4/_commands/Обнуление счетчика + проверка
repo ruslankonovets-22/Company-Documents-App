@@ -1,0 +1,112 @@
+#!/bin/bash
+# =============================================================================
+# КОМАНДЫ ДЛЯ СБРОСА СЧЁТЧИКА НУМЕРАЦИИ ДОКУМЕНТОВ
+# =============================================================================
+# Версия: v0.0.2.4
+# Дата: 2025-11-23
+# Назначение: Сброс счётчика Document Naming Rule до 0
+#
+# ВАЖНО: Используйте эти команды ТОЛЬКО на тестовом сервере!
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 1. СБРОС СЧЁТЧИКА (основная команда)
+# -----------------------------------------------------------------------------
+# Удаляет существующие Document Naming Rules и создаёт новое с counter=0
+
+docker exec frappe_docker_test-backend-1 bash -c 'bench --site localhost console << '\''PYEOF'\''
+import frappe
+
+# Получить все Document Naming Rules для Document
+rules = frappe.get_all("Document Naming Rule", 
+    filters={"document_type": "Document"}, 
+    fields=["name", "counter", "prefix"])
+
+print("=== ТЕКУЩИЕ ПРАВИЛА ===")
+for r in rules:
+    print(f"Name: {r.name}, Counter: {r.counter}, Prefix: {r.prefix}")
+
+# Удалить ВСЕ старые правила
+for r in rules:
+    frappe.delete_doc("Document Naming Rule", r.name, force=1)
+    print(f"✓ Deleted: {r.name}")
+
+# Создать НОВОЕ правило с counter=0
+naming_rule = frappe.get_doc({
+    "doctype": "Document Naming Rule",
+    "document_type": "Document",
+    "prefix": "DOC-.YYYY.-",
+    "prefix_digits": 5,
+    "counter": 0,
+    "disabled": 0,
+    "priority": 0,
+    "conditions": []
+})
+naming_rule.insert()
+print(f"\n✓ Created new naming rule: {naming_rule.name} with counter=0")
+
+frappe.db.commit()
+
+# Проверить результат
+new_rules = frappe.get_all("Document Naming Rule", 
+    filters={"document_type": "Document"}, 
+    fields=["name", "counter", "prefix"])
+
+print("\n=== НОВЫЕ ПРАВИЛА ===")
+for r in new_rules:
+    print(f"Name: {r.name}, Counter: {r.counter}, Prefix: {r.prefix}")
+PYEOF'
+
+# -----------------------------------------------------------------------------
+# 2. ПРОВЕРКА РЕЗУЛЬТАТА
+# -----------------------------------------------------------------------------
+# Показывает текущее состояние Document Naming Rules
+
+## 2.1 Проверка текущего счётчика
+
+
+docker exec frappe_docker_test-backend-1 bash -c 'bench --site localhost console << '\''PYEOF'\''
+import frappe
+
+rules = frappe.get_all("Document Naming Rule", 
+    filters={"document_type": "Document"}, 
+    fields=["name", "counter", "prefix", "disabled"])
+    
+print("=== DOCUMENT NAMING RULES ===")
+for r in rules:
+    status = "DISABLED" if r.disabled else "ACTIVE"
+    print(f"{r.name}: counter={r.counter}, prefix={r.prefix}, status={status}")
+PYEOF'
+
+# -----------------------------------------------------------------------------
+# ПРИМЕЧАНИЯ
+# -----------------------------------------------------------------------------
+# 
+# ВАЖНО: Где хранится счётчик
+# =============================
+# 1. Document Naming Rule.counter (БД) - ГЛАВНЫЙ ИСТОЧНИК
+# 2. tabSeries (БД) - кэш
+# 3. Python memory cache - временный
+#
+# НЕПРАВИЛЬНЫЕ способы сброса:
+# ============================
+# ❌ DELETE FROM tabSeries WHERE name LIKE 'DOC-%';
+#    → Frappe пересоздаст из Document Naming Rule.counter
+#
+# ❌ DELETE FROM tabDocument;
+#    → Счётчик НЕ уменьшается, только растёт
+#
+# ❌ frappe.clear_cache()
+#    → Очищает только Python cache, счётчик в БД остаётся
+#
+# ПРАВИЛЬНЫЙ способ (использован выше):
+# =====================================
+# ✅ frappe.delete_doc("Document Naming Rule", ...)
+# ✅ Создать новый с counter=0
+#
+# Подробнее:
+# ==========
+# - docs/internals/NAMING_MECHANISM.md
+# - docs/internals/FIXTURES_MECHANICS.md
+#
+# =============================================================================

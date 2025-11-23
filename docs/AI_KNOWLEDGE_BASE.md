@@ -492,11 +492,55 @@ jq 'length' company_documents/fixtures/folder_structure_template.json
 jq '.[0]' company_documents/fixtures/doctype.json
 ```
 
-#### 5.2.3 Важные моменты при экспорте
+#### 5.2.3 Критичное поле: counter в Document Naming Rule
+
+**⚠️ ВАЖНО:** Файл `document_naming_rule.json` содержит поле `counter` которое хранит текущий счётчик нумерации документов.
+
+**Пример:**
+```json
+{
+  "doctype": "Document Naming Rule",
+  "document_type": "Document",
+  "counter": 45,  // ← ТЕКУЩЕЕ ЗНАЧЕНИЕ ИЗ РАЗРАБОТКИ!
+  "prefix": "DOC-.YYYY.-",
+  ...
+}
+```
+
+**Проблема:** При каждой установке `company_documents` счётчик начинается с этого значения (45), а не с 0.
+
+**Где хранится счётчик (иерархия):**
+1. **Document Naming Rule.counter** (БД) - ГЛАВНЫЙ ИСТОЧНИК ПРАВДЫ
+2. **tabSeries** (БД) - кэш для быстрого доступа
+3. **Python memory cache** - временный кэш в runtime
+
+**ВАЖНО:** Удаление из `tabSeries` или `tabDocument` НЕ сбрасывает счётчик!
+
+**Правильный способ сброса:**
+```python
+# Удалить Document Naming Rule целиком
+frappe.delete_doc("Document Naming Rule", "rule_name", force=1)
+
+# Создать новый с counter=0
+naming_rule = frappe.get_doc({
+    "doctype": "Document Naming Rule",
+    "document_type": "Document",
+    "prefix": "DOC-.YYYY.-",
+    "counter": 0,  # ← СБРОС!
+    ...
+})
+naming_rule.insert()
+frappe.db.commit()
+```
+
+**Детальная документация:** См. `docs/internals/NAMING_MECHANISM.md` и `docs/internals/FIXTURES_MECHANICS.md`
+
+#### 5.2.4 Важные моменты при экспорте
 
 **✅ ДЕЛАТЬ:**
 - Экспортировать после каждого изменения DocType в UI
 - Проверять порядок в folder_structure_template.json
+- **Проверять значение `counter` в document_naming_rule.json перед релизом**
 - Коммитить изменения в Git
 - Проверять размер файлов (не должно быть 2 байта)
 
