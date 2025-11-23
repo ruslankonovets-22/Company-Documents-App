@@ -2,6 +2,17 @@
  {
   "docstatus": 0,
   "doctype": "Client Script",
+  "dt": "Document",
+  "enabled": 1,
+  "modified": "2025-11-23 17:54:23.508904",
+  "module": "Documents",
+  "name": "File URL Clickable",
+  "script": "frappe.ui.form.on('Document', {\r\n    refresh: function(frm) {\r\n        // Проверка что есть child table files\r\n        if (!frm.fields_dict.files || !frm.fields_dict.files.grid) {\r\n            return;\r\n        }\r\n        \r\n        let grid = frm.fields_dict.files.grid;\r\n        \r\n        // Обработчик кликов на ячейки file_url\r\n        grid.wrapper.off('click', '[data-fieldname=\"file_url\"]');  // Убрать старые обработчики\r\n        \r\n        grid.wrapper.on('click', '[data-fieldname=\"file_url\"]', function(e) {\r\n            e.stopPropagation();  // Останавливаем редактирование ячейки\r\n            e.preventDefault();   // Отменяем действие по умолчанию\r\n            \r\n            let $cell = $(this);\r\n            let row_name = $cell.closest('.grid-row').data('name');\r\n            let row = grid.grid_rows_by_docname[row_name];\r\n            \r\n            if (row && row.doc && row.doc.file_url) {\r\n                // Открываем ссылку в новой вкладке\r\n                window.open(row.doc.file_url, '_blank', 'noopener,noreferrer');\r\n                console.log('Открыта ссылка:', row.doc.file_url);\r\n            }\r\n        });\r\n        \r\n        // Стилизуем как ссылки\r\n        grid.wrapper.find('[data-fieldname=\"file_url\"]').each(function() {\r\n            let $cell = $(this);\r\n            let value = $cell.text().trim();\r\n            \r\n            if (value && (value.startsWith('http://') || value.startsWith('https://'))) {\r\n                $cell.css({\r\n                    'color': 'var(--primary)',\r\n                    'text-decoration': 'underline',\r\n                    'cursor': 'pointer',\r\n                    'user-select': 'none'  // Отключить выделение текста\r\n                });\r\n            }\r\n        });\r\n        \r\n        console.log('Client Script: file_url обработчики установлены');\r\n    },\r\n    \r\n    files_on_form_rendered: function(frm) {\r\n        // Обновить стили при каждом рендере grid\r\n        setTimeout(function() {\r\n            if (frm.fields_dict.files && frm.fields_dict.files.grid) {\r\n                frm.fields_dict.files.grid.wrapper.find('[data-fieldname=\"file_url\"]').each(function() {\r\n                    let $cell = $(this);\r\n                    let value = $cell.text().trim();\r\n                    \r\n                    if (value && (value.startsWith('http://') || value.startsWith('https://'))) {\r\n                        $cell.css({\r\n                            'color': 'var(--primary)',\r\n                            'text-decoration': 'underline',\r\n                            'cursor': 'pointer',\r\n                            'user-select': 'none'\r\n                        });\r\n                    }\r\n                });\r\n            }\r\n        }, 100);\r\n    }\r\n});",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
   "dt": "NextCloud Sync Settings",
   "enabled": 1,
   "modified": "2025-11-02 15:55:06.680473",

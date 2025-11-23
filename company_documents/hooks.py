@@ -4,7 +4,7 @@ app_publisher = "Your Company"
 app_description = "Document management system with NextCloud sync"
 app_email = "support@example.com"
 app_license = "mit"
-app_version = "0.0.2.4"
+app_version = "0.0.2.5"
 
 doc_events = {
     "Document": {
