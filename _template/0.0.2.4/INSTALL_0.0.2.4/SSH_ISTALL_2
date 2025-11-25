@@ -297,6 +297,12 @@ services:
         fi
         
         echo ""
+        echo "⚙️  ВАЖНО: Включаем developer_mode ПЕРЕД созданием сайта..."
+        echo "   (требуется для импорта DocType fixtures из pibidav и company_documents)"
+        bench set-config -g developer_mode 1
+        bench set-config -g server_script_enabled 1
+        
+        echo ""
         echo "🚀 Creating site localhost..."
         bench new-site localhost \
           --mariadb-user-host-login-scope='%' \
@@ -310,10 +316,9 @@ services:
           --set-default
         
         echo ""
-        echo "⚙️  Configuring site settings..."
-        bench set-config -g server_script_enabled true
-        bench --site localhost set-config developer_mode true
-        bench --site localhost set-config allow_client_scripts true
+        echo "⚙️  Configuring additional site settings..."
+        bench --site localhost set-config developer_mode 1
+        bench --site localhost set-config allow_client_scripts 1
         
         echo ""
         echo "🎨 Building frontend assets..."

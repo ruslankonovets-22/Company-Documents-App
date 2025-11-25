@@ -4,15 +4,15 @@ app_publisher = "Your Company"
 app_description = "Document management system with NextCloud sync"
 app_email = "ruslankonovets@gmail.com"
 app_license = "mit"
-app_version = "0.0.2. 5"
+app_version = "0.0.2.5"
 
 doc_events = {
     "Document": {
         "on_update": [
             "company_documents.nextcloud_sync.track_folder_changes",
-            "company_documents. nextcloud_sync.track_file_deletions",
+            "company_documents.nextcloud_sync.track_file_deletions",
             "company_documents.nextcloud_sync.upload_to_nextcloud",
-            "company_documents.nextcloud_sync. delete_from_nextcloud"
+            "company_documents.nextcloud_sync.delete_from_nextcloud"
         ]
     }
 }
