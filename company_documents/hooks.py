@@ -2,7 +2,7 @@ app_name = "company_documents"
 app_title = "Company Documents"
 app_publisher = "Your Company"
 app_description = "Document management system with NextCloud sync"
-app_email = "support@example.com"
+app_email = "ruslankonovets@gmail.com"
 app_license = "mit"
 app_version = "0.0.2.5"
 
@@ -18,36 +18,28 @@ doc_events = {
 }
 
 fixtures = [
-    # ИСПРАВЛЕНО: Убран фильтр custom=1, так как наши DocTypes имеют custom=0
-    # DocTypes создаются через код, а не через UI, поэтому custom=0
+    # АКТИВНЫЕ DocTypes (модуль Documents)
     {
         "dt": "DocType",
-        "filters": [
-            ["module", "=", "Documents"]
-        ]
+        "filters": [["module", "=", "Documents"], ["app", "=", "company_documents"]]
     },
-    {
-        "dt": "DocType",
-        "filters": [
-            ["module", "=", "Projects"]
-        ]
-    },
+    
+    # Server Scripts
     {"dt": "Server Script"},
+    
+    # Client Scripts
     {"dt": "Client Script"},
-    {
-        "dt": "Custom Field",
-        "filters": [["module", "in", ["Documents", "Projects"]]]
-    },
-    {
-        "dt": "Property Setter",
-        "filters": [["module", "in", ["Documents", "Projects"]]]
-    },
+    
+    # Folder Structure Templates
     {"dt": "Folder Structure Template"},
+    
+    # Document Naming Rule
     {
         "dt": "Document Naming Rule",
         "filters": [["document_type", "=", "Document"]]
     },
-    # ИСПРАВЛЕНО: "Documents app" -> "Documents App" (заглавная A)
+    
+    # Workspace
     {
         "dt": "Workspace",
         "filters": [["title", "=", "Documents App"]]
