@@ -1,0 +1,102 @@
+############################################################
+# Гайд: Получение базовой информации о контейнере и системе #
+############################################################
+
+## 1. Проверка рабочей директории контейнера
+
+**Команда:**
+```
+docker exec frappe_docker_test-backend-1 pwd
+```
+**Результат:**
+```
+/home/frappe/frappe-bench
+```
+
+---
+
+## 2. Просмотр содержимого папки sites
+
+**Команда:**
+```
+docker exec frappe_docker_test-backend-1 ls -la /home/frappe/frappe-bench/sites/
+```
+**Результат:**
+```
+total 32
+drwxr-xr-x 4 frappe frappe 4096 Nov 24 02:57 .
+drwxr-xr-x 1 frappe frappe 4096 Nov 24 02:36 ..
+-rw-r--r-- 1 frappe frappe 1483 Nov 24 02:46 apps.json
+-rw-r--r-- 1 frappe frappe   52 Nov 24 02:53 apps.txt
+drwxr-xr-x 5 frappe frappe 4096 Nov 24 02:53 assets
+-rw-r--r-- 1 frappe frappe  259 Nov 24 02:57 common_site_config.json
+drwxr-xr-x 6 frappe frappe 4096 Nov 24 02:54 localhost
+```
+где `localhost` - имя сайта.
+
+---
+
+## 3. Проверка пользователя внутри контейнера
+
+**Команда:**
+```
+docker exec frappe_docker_test-backend-1 whoami
+```
+**Результат:**
+```
+frappe
+```
+
+---
+
+## 4. Список установленных приложений на сайте
+
+**Команда:**
+```
+docker exec frappe_docker_test-backend-1 bench --site localhost list-apps
+```
+**Результат:**
+```
+frappe            15.89.0 UNVERSIONED
+erpnext           15.83.0 UNVERSIONED
+hrms              15.52.0 UNVERSIONED
+raven             2.6.4   UNVERSIONED
+pibidav           0.0.1   UNVERSIONED
+company_documents 0.0.2.5 UNVERSIONED (версия может меняться)
+```
+
+---
+
+## 5. Проверка версий приложений
+
+**Команда:**
+```
+docker exec frappe_docker_test-backend-1 bench version
+```
+**Результат:**
+```
+company_documents 0.0.2.5 (версия может меняться)
+erpnext 15.83.0
+frappe 15.89.0
+hrms 15.52.0
+pibidav 0.0.1
+raven 2.6.4
+```
+
+---
+
+## 6. Вводные данные для формирования команд
+- **Имя контейнера:** `frappe_docker_test-backend-1`
+- **Рабочая директория:** `/home/frappe/frappe-bench`
+- **Имя сайта:** `localhost`
+- **Пользователь:** `frappe`
+- **Список приложений:** frappe, erpnext, hrms, raven, pibidav, company_documents
+- **Версии приложений:** см. вывод команды `bench version`
+
+---
+
+```
+
+---
+
+# Документ структурирован для быстрой навигации и понимания.
