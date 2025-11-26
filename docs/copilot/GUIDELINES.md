@@ -1,7 +1,7 @@
-# 🤖 GitHub Copilot Guidelines - Company Documents App v0.0.2
+# 🤖 GitHub Copilot Guidelines - Company Documents App v0.0.2.6
 
-**Версия:** v0.0.2  
-**Дата:** 2025-11-20  
+**Версия:** v0.0.2.6  
+**Дата:** 2025-11-26  
 **Статус:** КРИТИЧНЫЙ ДОКУМЕНТ для GitHub Copilot
 
 ---
@@ -573,19 +573,58 @@ cat sites/common_site_config.json | grep server_script
 
 ---
 
-## 12. Documentation Links
+## 12. API Methods (v0.0.2.6+)
 
-### 12.1 Внутренняя документация
+### 12.1 Файл: company_documents/api.py
+
+**Канонические методы для UI:**
+
+```python
+# Flat список документов с files[]
+from company_documents.api import get_project_document_overview
+docs = get_project_document_overview("PROJ-0001")
+
+# Иерархическая структура по level_1..5
+from company_documents.api import get_project_document_tree
+tree = get_project_document_tree("PROJ-0001")
+```
+
+### 12.2 JavaScript
+
+```javascript
+frappe.call({
+    method: 'company_documents.api.get_project_document_overview',
+    args: { project: 'PROJ-0001' },
+    callback: (r) => console.log(r.message)
+});
+```
+
+### 12.3 Производительность
+
+- **Оптимизировано:** 2 SQL запроса вместо N+1
+- 50 docs: ~3ms
+- 150 docs: ~7ms
+- 500 docs: ~20ms
+
+📚 **Полная документация:** [API.md](../API.md)
+
+---
+
+## 13. Documentation Links
+
+### 13.1 Внутренняя документация
 
 - **[INDEX.md](../INDEX.md)** - навигация
 - **[ARCHITECTURE.md](../ARCHITECTURE.md)** - архитектура
+- **[API.md](../API.md)** - API Reference ⚠️ **НОВЫЙ**
+- **[DOCUMENT_LOGIC.md](../DOCUMENT_LOGIC.md)** - логика Document ⚠️ **НОВЫЙ**
 - **[DEVELOPMENT.md](../DEVELOPMENT.md)** - разработка
 - **[NEXTCLOUD_SYNC.md](../NEXTCLOUD_SYNC.md)** - NextCloud sync
 - **[DOCKER_SETUP.md](../DOCKER_SETUP.md)** - Docker setup
 - **[FIXTURES.md](../FIXTURES.md)** - Fixtures
 - **[COMMON_COMMANDS.md](COMMON_COMMANDS.md)** - частые команды
 
-### 12.2 Внешние ресурсы
+### 13.2 Внешние ресурсы
 
 - [Frappe v15 Migration](https://github.com/frappe/frappe/wiki/Migrating-to-Version-15)
 - [NextCloud WebDAV API](https://docs.nextcloud.com/server/stable/developer_manual/client_apis/WebDAV/)
@@ -594,7 +633,13 @@ cat sites/common_site_config.json | grep server_script
 
 ---
 
-## 13. Changelog
+## 14. Changelog
+
+### v0.0.2.6 (2025-11-26)
+- ✅ Добавлен API модуль (company_documents/api.py)
+- ✅ get_project_document_overview() — flat список с files[]
+- ✅ get_project_document_tree() — иерархия по level_1..5
+- ✅ Документация API.md и DOCUMENT_LOGIC.md
 
 ### v0.0.2 (2025-11-20)
 - ✅ Добавлена полная документация
@@ -608,7 +653,7 @@ cat sites/common_site_config.json | grep server_script
 
 ---
 
-## 14. Final Checklist
+## 15. Final Checklist
 
 Перед ответом на вопрос проверьте:
 
@@ -622,6 +667,6 @@ cat sites/common_site_config.json | grep server_script
 
 ---
 
-**Последнее обновление:** 2025-11-20
+**Последнее обновление:** 2025-11-26
 
 **Помните:** Лучше сказать "DON'T KNOW", чем дать неправильный совет!

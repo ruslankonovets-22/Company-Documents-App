@@ -1,7 +1,7 @@
 # 📚 Документация Company Documents App v0.0.2
 
-**Версия:** v0.0.2.4  
-**Дата:** 2025-11-23  
+**Версия:** v0.0.2.6  
+**Дата:** 2025-11-26  
 **Статус:** Development (Testing Phase)
 
 ---
@@ -17,28 +17,40 @@
    - Server Scripts и Client Scripts
    - NextCloud Sync Settings (Single DocType)
 
-2. **[DEVELOPMENT.md](DEVELOPMENT.md)** - Разработка
+2. **[API.md](API.md)** - API Reference ⚠️ **НОВЫЙ v0.0.2.6**
+   - `get_project_document_overview()` — flat-список для таблиц
+   - `get_project_document_tree()` — иерархия для Tree View
+   - Примеры использования (Python, JavaScript, curl)
+   - Тестирование производительности
+
+3. **[DOCUMENT_LOGIC.md](DOCUMENT_LOGIC.md)** - Логика DocType Document ⚠️ **НОВЫЙ v0.0.2.6**
+   - Архитектурные решения и их причины
+   - Автоматические расчёты (validate hook)
+   - Уровни папок (level_1..5)
+   - Связь с Folder Structure Template
+
+4. **[DEVELOPMENT.md](DEVELOPMENT.md)** - Разработка
    - Подход к разработке (ПОЛИГОН)
    - Docker workflow
    - Редактирование файлов в контейнере
    - Python команды и Frappe console
    - Git workflow
 
-3. **[NEXTCLOUD_SYNC.md](NEXTCLOUD_SYNC.md)** - NextCloud синхронизация
-   - Архитектура nextcloud_sync.py (636 строк)
+5. **[NEXTCLOUD_SYNC.md](NEXTCLOUD_SYNC.md)** - NextCloud синхронизация
+   - Архитектура nextcloud_sync.py (473 строки)
    - Функция get_nextcloud_config()
    - WebDAV операции (MKCOL, PUT, MOVE, DELETE)
    - Структура путей файлов в NextCloud
    - Single DocType для хранения настроек
 
-4. **[DOCKER_SETUP.md](DOCKER_SETUP.md)** - Docker установка
+6. **[DOCKER_SETUP.md](DOCKER_SETUP.md)** - Docker установка
    - Структура apps.json
    - Архитектура Containerfile
    - Сервисы compose.yaml
    - Порядок установки приложений
    - Маппинг портов
 
-5. **[FIXTURES.md](FIXTURES.md)** - Конфигурация Fixtures
+7. **[FIXTURES.md](FIXTURES.md)** - Конфигурация Fixtures
    - Текущая конфигурация hooks.py
    - Корректный фильтр: `["app", "=", "company_documents"]`
    - Проблемы с фильтрами и их решения
@@ -47,7 +59,7 @@
 
 ### 🔧 Внутренние механизмы (Internals)
 
-6. **[internals/FIXTURES_MECHANICS.md](internals/FIXTURES_MECHANICS.md)** ⚠️ **НОВЫЙ**
+8. **[internals/FIXTURES_MECHANICS.md](internals/FIXTURES_MECHANICS.md)**
    - Механизм работы fixtures при установке
    - Последовательность импорта (9 типов)
    - Описание каждого fixture (DocType, Server Script, Client Script, FST, Naming Rule)
@@ -55,7 +67,7 @@
    - Механизм обновления при переустановке
    - Процедуры сброса и управления
 
-7. **[internals/NAMING_MECHANISM.md](internals/NAMING_MECHANISM.md)** ⚠️ **НОВЫЙ**
+9. **[internals/NAMING_MECHANISM.md](internals/NAMING_MECHANISM.md)**
    - Иерархия источников счётчика (Document Naming Rule → tabSeries → cache)
    - Алгоритм генерации номера документа
    - Таблицы БД (tabDocument Naming Rule, tabSeries)
@@ -65,7 +77,7 @@
 
 ### 🤖 Документация для GitHub Copilot
 
-8. **[copilot/GUIDELINES.md](copilot/GUIDELINES.md)** ⭐ **КРИТИЧНЫЙ ФАЙЛ**
+10. **[copilot/GUIDELINES.md](copilot/GUIDELINES.md)** ⭐ **КРИТИЧНЫЙ ФАЙЛ**
    - Уровни уверенности (CERTAIN, CONFIDENT, UNCERTAIN, DON'T KNOW)
    - Технический стек и версии
    - Критичные правила (NEVER/ALWAYS)
@@ -77,7 +89,7 @@
    - Подход к разработке (ПОЛИГОН)
    - Типичные проблемы и решения
 
-9. **[copilot/COMMON_COMMANDS.md](copilot/COMMON_COMMANDS.md)**
+11. **[copilot/COMMON_COMMANDS.md](copilot/COMMON_COMMANDS.md)**
    - Часто используемые команды
    - Готовые к копированию примеры
    - Редактирование файлов (heredoc)
@@ -89,7 +101,7 @@
 
 ### 📝 История изменений
 
-10. **[../CHANGELOG.md](../CHANGELOG.md)** - История версий
+12. **[../CHANGELOG.md](../CHANGELOG.md)** - История версий
    - v0.0.2 (2025-11-20) - Текущая версия
    - v0.0.1 (2025-09-04) - Начальная версия
 
@@ -107,6 +119,8 @@
 
 ### 👨‍💻 Для разработчиков
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - понимание структуры
+- **[API.md](API.md)** - методы API для UI компонентов
+- **[DOCUMENT_LOGIC.md](DOCUMENT_LOGIC.md)** - логика DocType Document
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** - рабочий процесс
 - **[FIXTURES.md](FIXTURES.md)** - работа с данными
 - **[internals/FIXTURES_MECHANICS.md](internals/FIXTURES_MECHANICS.md)** - глубокое понимание fixtures
@@ -138,6 +152,8 @@ Company-Documents-App/
 ├── docs/                               # Документация
 │   ├── INDEX.md                        # Этот файл
 │   ├── ARCHITECTURE.md                 # Архитектура
+│   ├── API.md                          # API Reference (NEW)
+│   ├── DOCUMENT_LOGIC.md               # Логика Document (NEW)
 │   ├── DEVELOPMENT.md                  # Разработка
 │   ├── NEXTCLOUD_SYNC.md              # NextCloud sync
 │   ├── DOCKER_SETUP.md                # Docker setup
@@ -158,6 +174,7 @@ Company-Documents-App/
 │
 └── company_documents/                  # Код приложения
     ├── hooks.py                        # Конфигурация
+    ├── api.py                          # API методы (NEW)
     ├── nextcloud_sync.py              # NextCloud интеграция
     └── fixtures/                      # Данные для установки
 ```
@@ -180,11 +197,22 @@ Company-Documents-App/
 
 ---
 
-**Последнее обновление:** 2025-11-23
+**Последнее обновление:** 2025-11-26
 
 ---
 
 ## 📌 Недавние изменения
+
+### 2025-11-26: API и документация v0.0.2.6
+
+- ✅ **[API.md](API.md)** - полная документация API методов
+  - `get_project_document_overview()` — flat-список с `files[]`
+  - `get_project_document_tree()` — иерархия по level_1..5
+  - Примеры Python, JavaScript, curl
+  - Тестирование производительности
+- ✅ **[DOCUMENT_LOGIC.md](DOCUMENT_LOGIC.md)** - логика DocType Document
+- ✅ Обновлена ARCHITECTURE.md, FIXTURES.md, NEXTCLOUD_SYNC.md
+- ✅ Добавлен `company_documents/api.py`
 
 ### 2025-11-23: Добавлена документация по внутренним механизмам
 

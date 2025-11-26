@@ -465,6 +465,7 @@ print(validate)  # <function validate at 0x...>
 
 ## Ссылки
 
+- **[API.md](API.md)** - API методы для работы с Document
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - общая архитектура
 - **[NEXTCLOUD_SYNC.md](NEXTCLOUD_SYNC.md)** - детали WebDAV интеграции
 - **[FIXTURES.md](FIXTURES.md)** - экспорт/импорт данных
