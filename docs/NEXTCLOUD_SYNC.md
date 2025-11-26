@@ -1,9 +1,9 @@
 # ☁️ NextCloud Sync - Подробная документация
 
-**Версия:** v0.0.2  
-**Дата:** 2025-11-20  
+**Версия:** v0.0.2.6  
+**Дата:** 2025-11-26  
 **Файл:** company_documents/nextcloud_sync.py  
-**Размер:** 473 строки
+**Размер:** ~620 строк
 
 ---
 
@@ -26,23 +26,29 @@
 ### 2.1 Основные компоненты
 
 ```python
-# nextcloud_sync.py (473 строки)
+# nextcloud_sync.py (~620 строк)
 
 # 1. Конфигурация
 get_nextcloud_config()              # Получение настроек
 
-# 2. Управление папками
+# 2. Получение file_id (v0.0.2.6+)
+get_nextcloud_file_id()             # PROPFIND для file_id
+
+# 3. Управление папками
 get_folder_path()                   # Построение пути
 create_nextcloud_folder()           # Создание папок (MKCOL)
 
-# 3. Управление файлами
-upload_to_nextcloud()               # Загрузка (PUT)
+# 4. Управление файлами
+upload_to_nextcloud()               # Загрузка (PUT) + file_id
 delete_from_nextcloud()             # Удаление (DELETE)
 move_file_in_nextcloud()            # Перемещение (MOVE)
 
-# 4. Отслеживание изменений
+# 5. Отслеживание изменений
 track_folder_changes()              # Изменения структуры
 track_file_deletions()              # Удаленные файлы
+
+# 6. Ручная синхронизация
+sync_document_to_nextcloud()        # @frappe.whitelist()
 ```
 
 ### 2.2 Диаграмма потока
@@ -727,11 +733,87 @@ print(os.path.exists(file_path))  # Должно быть True
 ## Ссылки
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - общая архитектура
+- **[DOCUMENT_LOGIC.md](DOCUMENT_LOGIC.md)** - логика работы Document
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** - разработка
 - **[../knowledge.md](../knowledge.md)** - база знаний WebDAV
 
 **Официальная документация:**
 - [NextCloud WebDAV API](https://docs.nextcloud.com/server/stable/developer_manual/client_apis/WebDAV/)
+
+---
+
+## 13. Новое в v0.0.2.6: Direct File Links
+
+### 13.1 Проблема до v0.0.2.6
+
+**Старый формат file_url:**
+```
+https://cloud.example.com/apps/files/?dir=/Projects/Test
+```
+❌ Открывает **папку** - пользователь должен искать файл вручную
+
+### 13.2 Решение: get_nextcloud_file_id()
+
+**Новая функция:**
+```python
+def get_nextcloud_file_id(file_path, config):
+    """
+    Получить file_id файла в NextCloud через WebDAV PROPFIND.
+    
+    Args:
+        file_path: Путь к файлу (Projects/TEST/file.jpg)
+        config: NextCloud конфигурация
+    
+    Returns:
+        file_id (str) или None
+    """
+    propfind_xml = '''<?xml version="1.0"?>
+    <d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+      <d:prop>
+        <oc:fileid/>
+        <nc:fileid/>
+      </d:prop>
+    </d:propfind>'''
+    
+    response = requests.request('PROPFIND', url, data=propfind_xml, 
+                                headers={'Depth': '0'}, auth=auth)
+    
+    # Парсинг XML - поддержка oc:fileid и nc:fileid
+    ...
+```
+
+### 13.3 Новый формат file_url
+
+**С v0.0.2.6:**
+```
+https://cloud.example.com/apps/files/files/123456?dir=/Projects/Test&openfile=true
+```
+✅ Открывает **файл напрямую** благодаря:
+- `files/123456` - file_id из PROPFIND
+- `openfile=true` - параметр для прямого открытия
+
+### 13.4 Где используется file_id
+
+| Функция | Использование |
+|---------|--------------|
+| `upload_to_nextcloud()` | После PUT → PROPFIND → file_url с file_id |
+| `sync_document_to_nextcloud()` | После загрузки → PROPFIND → file_url с file_id |
+| `move_files_in_nextcloud()` | После MOVE → PROPFIND → обновление file_url |
+
+### 13.5 Поддержка namespace
+
+NextCloud использует разные namespace в зависимости от версии:
+
+| Версия | Namespace | Элемент |
+|--------|-----------|---------|
+| OwnCloud / старый NextCloud | `http://owncloud.org/ns` | `<oc:fileid>` |
+| NextCloud 25+ | `http://nextcloud.org/ns` | `<nc:fileid>` |
+
+Функция `get_nextcloud_file_id()` пробует оба варианта.
+
+---
+
+**Последнее обновление:** 2025-11-26
 - [RFC 4918 - WebDAV](https://datatracker.ietf.org/doc/html/rfc4918)
 
 ---

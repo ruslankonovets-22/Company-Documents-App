@@ -1,7 +1,8 @@
-# 📋 ФИНАЛЬНЫЙ МАНУАЛ v0.0.2: ПОЛНАЯ УСТАНОВКА ERPNext + company_documents
+# 📋 ФИНАЛЬНЫЙ МАНУАЛ v0.0.2.6: ПОЛНАЯ УСТАНОВКА ERPNext + company_documents
 
-**Дата создания:** 2025-11-20 14:47:17  
-**Версия:** v0.0.2 (РАБОЧАЯ, ПРОТЕСТИРОВАННАЯ)  
+**Дата создания:** 2025-11-20  
+**Последнее обновление:** 2025-06-24  
+**Версия:** v0.0.2.6 (РАБОЧАЯ, ПРОТЕСТИРОВАННАЯ)  
 **Статус:** ✅ РАБОТАЕТ ИЗ КОРОБКИ
 
 ---
@@ -19,7 +20,7 @@
 | **HRMS** | v15.52.0 | Управление персоналом |
 | **Raven** | v2.6.4 | Внутренний чат |
 | **pibiDAV** | version-15 | WebDAV интеграция |
-| **company_documents** | **0.0.2** | Наше приложение |
+| **company_documents** | **0.0.2.6** | Наше приложение |
 
 ## 📂 ПРЕДВАРИТЕЛЬНЫЕ ТРЕБОВАНИЯ
 
@@ -65,10 +66,13 @@ cat > apps.json << 'JSON'
   {"url": "https://github.com/frappe/erpnext", "branch": "v15.83.0"},
   {"url": "https://github.com/frappe/hrms", "branch": "v15.52.0"},
   {"url": "https://github.com/The-Commit-Company/raven", "branch": "v2.6.4"},
-  {"url": "https://github.com/pibico/pibidav", "branch": "version-15"}
+  {"url": "https://github.com/pibico/pibidav", "branch": "version-15"},
+  {"url": "https://github.com/pibiDAV/company_documents", "branch": "main"}
 ]
 JSON
 ```
+
+> **📌 Важно:** company_documents теперь берётся напрямую из GitHub!
 
 ### **Шаг 5: Сборка образа**
 
@@ -77,7 +81,7 @@ export APPS_JSON_BASE64=$(base64 -w 0 apps.json)
 
 docker build \
   --build-arg APPS_JSON_BASE64="$APPS_JSON_BASE64" \
-  --tag custom-erpnext:v15-0.0.2 \
+  --tag custom-erpnext:v15-0.0.2.6 \
   --file images/custom/Containerfile \
   .
 ```
@@ -97,4 +101,68 @@ docker compose logs -f create-site
 
 ---
 
-**Полная версия:** см. Release v0.0.2 на GitHub
+## 🚀 БЫСТРАЯ УСТАНОВКА (SSH-скрипт)
+
+Для автоматической установки используйте скрипт `SSH_INSTALL_4.sh` из `_template/0.0.2.4/INSTALL_0.0.2.4/`:
+
+```bash
+# Скачать и запустить
+curl -O https://raw.githubusercontent.com/pibiDAV/company_documents/main/_template/0.0.2.4/INSTALL_0.0.2.4/SSH_INSTALL_4.sh
+chmod +x SSH_INSTALL_4.sh
+./SSH_INSTALL_4.sh
+```
+
+Скрипт автоматически:
+- Проверяет Docker и Docker Compose
+- Клонирует frappe_docker
+- Создаёт apps.json с GitHub-ссылкой на company_documents
+- Собирает образ с прогрессом
+- Запускает контейнеры
+- Создаёт сайт с developer_mode (до создания!) и всеми fixtures
+
+---
+
+## ⚠️ КРИТИЧНЫЕ МОМЕНТЫ
+
+### 1. developer_mode ПЕРЕД new-site
+
+```bash
+# ПРАВИЛЬНО:
+bench set-config -gp developer_mode 1
+bench new-site localhost --install-app company_documents
+
+# НЕПРАВИЛЬНО:
+bench new-site localhost --install-app company_documents
+bench set-config -gp developer_mode 1  # Уже поздно!
+```
+
+### 2. server_script_enabled
+
+```bash
+bench set-config -g server_script_enabled true
+```
+
+### 3. Порядок apps в apps.txt
+
+```
+frappe
+erpnext
+hrms
+raven
+pibidav
+company_documents  # ПОСЛЕДНИМ!
+```
+
+---
+
+## 📝 Что нового в v0.0.2.6
+
+- ✅ Все DocTypes используют `custom: 1` (не требует developer_mode для fixtures)
+- ✅ 84 записи Folder Structure Template с правильным nested set порядком
+- ✅ validate hook: автоматический расчёт planned_end_date, files_count, overdue
+- ✅ Прямые ссылки на файлы NextCloud через file_id
+- ✅ Валидация FST порядка через pre-commit hook
+
+---
+
+**Полная версия:** см. [DOCUMENT_LOGIC.md](DOCUMENT_LOGIC.md) и [NEXTCLOUD_SYNC.md](NEXTCLOUD_SYNC.md)

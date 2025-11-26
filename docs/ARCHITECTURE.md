@@ -1,7 +1,7 @@
-# 🏗️ Архитектура Company Documents App v0.0.2
+# 🏗️ Архитектура Company Documents App v0.0.2.6
 
-**Версия:** v0.0.2  
-**Дата:** 2025-11-20  
+**Версия:** v0.0.2.6  
+**Дата:** 2025-11-26  
 **Frappe:** version-15  
 **ERPNext:** v15.83.0
 
@@ -40,14 +40,18 @@ company_documents/
 ├── modules.txt                        # Модули
 │
 ├── fixtures/                          # Данные для установки
-│   ├── doctype.json                   # 9 DocTypes
-│   ├── server_script.json             # 5 Server Scripts
-│   ├── client_script.json             # 7 Client Scripts
-│   ├── folder_structure_template.json # 45 шаблонов
+│   ├── doctype.json                   # 5 DocTypes (custom=1)
+│   ├── server_script.json             # Server Scripts
+│   ├── client_script.json             # 6 Client Scripts
+│   ├── folder_structure_template.json # 84 шаблона (3 корневых + 81 дочерних)
 │   ├── custom_field.json              # Кастомные поля
 │   ├── property_setter.json           # Настройки свойств
 │   ├── document_naming_rule.json      # Правила нумерации
 │   └── workspace.json                 # Воркспейсы
+│
+├── custom/                            # Кастомные контроллеры
+│   ├── __init__.py
+│   └── document.py                    # validate() для Document
 │
 ├── documents/                         # Модуль Documents
 │   └── doctype/
@@ -85,20 +89,48 @@ company_documents/
 
 | Поле | Тип | Описание |
 |------|-----|----------|
-| `name` | Data | Автоматическая нумерация (DOC-.YYYY.-) |
+| `naming_series` | Select | Автоматическая нумерация (DOC-.YYYY.-) |
 | `project` | Link (Project) | Связь с проектом |
 | `task` | Link (Task) | Связь с задачей |
-| `level_1` | Data | Уровень 1 структуры папок |
-| `level_2` | Data | Уровень 2 структуры папок |
-| `level_3` | Data | Уровень 3 структуры папок |
-| `level_4` | Data | Уровень 4 структуры папок |
-| `level_5` | Data | Уровень 5 структуры папок |
+| `status` | Select | Статус документа (Draft/Complete/Needs Review) |
+| `level_1` - `level_5` | Link (FST) | 5 уровней структуры папок |
 | `files` | Table (Document File) | Таблица файлов |
+| `readiness_status` | Select | Статус готовности (missing/partial/approved/...) |
+| `files_count` | Int | **Авто-расчёт:** количество файлов |
+| `start_date` | Date | Дата начала работы |
+| `planned_days` | Int | Планируемые дни |
+| `planned_end_date` | Date | **Авто-расчёт:** start_date + planned_days |
+| `due_date` | Date | Крайний срок |
+| `overdue` | Check | **Авто-расчёт:** просрочен ли документ |
+| `responsible_employee` | Link (Employee) | Ответственный сотрудник |
+| `is_synced` | Check | Синхронизирован с NextCloud |
 
-**Hooks:**
+**Автоматические расчёты (validate hook):**
+```python
+# company_documents/custom/document.py
+def validate(doc, method):
+    # planned_end_date = start_date + planned_days
+    if doc.start_date and doc.planned_days:
+        doc.planned_end_date = add_days(doc.start_date, doc.planned_days)
+    
+    # files_count = количество файлов
+    doc.files_count = len(doc.files) if doc.files else 0
+    
+    # overdue = просрочен если today > due_date и не approved
+    effective_due = doc.due_date or doc.planned_end_date
+    if effective_due:
+        is_overdue = (getdate(today()) > getdate(effective_due) 
+                     and doc.readiness_status != "approved")
+        doc.overdue = 1 if is_overdue else 0
+```
+
+**Hooks (events):**
 ```python
 doc_events = {
     "Document": {
+        "validate": [
+            "company_documents.custom.document.validate"
+        ],
         "on_update": [
             "company_documents.nextcloud_sync.track_folder_changes",
             "company_documents.nextcloud_sync.track_file_deletions",
@@ -120,21 +152,31 @@ doc_events = {
 | Поле | Тип | Описание |
 |------|-----|----------|
 | `file` | Attach | Прикрепленный файл |
-| `file_url` | Data | URL файла в NextCloud |
-| `is_synced` | Check | Флаг синхронизации |
+| `file_name` | Data | Имя файла |
+| `file_url` | Data | URL файла в NextCloud (с file_id) |
+| `file_synced` | Check | Флаг синхронизации |
+| `uploaded_by` | Link (User) | Кто загрузил |
+| `uploaded_on` | Datetime | Когда загружено |
+
+**Формат file_url (v0.0.2.6+):**
+```
+https://cloud.example.com/apps/files/files/123456?dir=/Projects/Test&openfile=true
+```
+- `123456` - file_id из NextCloud PROPFIND
+- `openfile=true` - открывает файл напрямую, а не папку
 
 #### Folder Structure Template
-**Тип:** Document  
+**Тип:** Document (Tree/Nested Set)  
 **App:** company_documents  
 **Модуль:** Documents  
 **Назначение:** Шаблоны структуры папок
 
-**Количество шаблонов:** 45
+**Количество шаблонов:** 84 (3 корневых + 81 дочерних)
 
 **Структура:**
-- Проект
-- Тип документа
-- 5 уровней вложенности
+- 3 корневых элемента: Progettazione, Realizzazione, Amministrativi
+- Иерархия до 5 уровней вложенности
+- **Важно:** Использует Nested Set - порядок в JSON критичен (родители перед детьми)
 
 #### NextCloud Sync Settings
 **Тип:** Single  
@@ -195,11 +237,14 @@ nc_password = get_decrypted_password(
 ```python
 app_name = "company_documents"
 app_title = "Company Documents"
-app_version = "0.0.2"
+app_version = "0.0.2.6"
 
-# Document Events - 4 функции
+# Document Events - validate + 4 функции on_update
 doc_events = {
     "Document": {
+        "validate": [
+            "company_documents.custom.document.validate"  # Авто-расчёты
+        ],
         "on_update": [
             "company_documents.nextcloud_sync.track_folder_changes",
             "company_documents.nextcloud_sync.track_file_deletions",
@@ -209,43 +254,38 @@ doc_events = {
     }
 }
 
-# Fixtures - экспорт данных
+# Fixtures - экспорт данных (v0.0.2.6: фильтр по app)
 fixtures = [
-    {
-        "dt": "DocType",
-        "filters": [
-            ["module", "=", "Documents"],
-            ["custom", "=", 1]
-        ]
-    },
-    {
-        "dt": "DocType",
-        "filters": [
-            ["module", "=", "Projects"],
-            ["custom", "=", 1]
-        ]
-    },
-    {"dt": "Server Script"},
-    {"dt": "Client Script"},
-    {
-        "dt": "Custom Field",
-        "filters": [["module", "in", ["Documents", "Projects"]]]
-    },
-    {
-        "dt": "Property Setter",
-        "filters": [["module", "in", ["Documents", "Projects"]]]
-    },
+    # DocTypes - фильтр по app (не по module!)
+    {"dt": "DocType", "filters": [["app", "=", "company_documents"]]},
+    
+    # Server Scripts - фильтр по module
+    {"dt": "Server Script", "filters": [["module", "=", "Documents"]]},
+    
+    # Client Scripts - фильтр по dt (наши DocTypes)
+    {"dt": "Client Script", "filters": [
+        ["dt", "in", ["Document", "Document File", "NextCloud Sync Settings", "Folder Structure Template"]]
+    ]},
+    
+    # Custom Fields / Property Setters
+    {"dt": "Custom Field", "filters": [["module", "=", "Documents"]]},
+    {"dt": "Property Setter", "filters": [["module", "=", "Documents"]]},
+    
+    # Все Folder Structure Templates (84 записи)
     {"dt": "Folder Structure Template"},
-    {
-        "dt": "Document Naming Rule",
-        "filters": [["document_type", "=", "Document"]]
-    },
-    {
-        "dt": "Workspace",
-        "filters": [["title", "=", "Documents app"]]
-    }
+    
+    # Document Naming Rule
+    {"dt": "Document Naming Rule", "filters": [["document_type", "=", "Document"]]},
+    
+    # Workspace
+    {"dt": "Workspace", "filters": [["title", "=", "Documents App"]]}
 ]
 ```
+
+**Важные изменения v0.0.2.6:**
+- ✅ Добавлен `validate` event для авто-расчётов
+- ✅ Фильтр DocTypes по `app` (не по `module`) - экспортирует только наши 5 DocTypes
+- ✅ Все DocTypes имеют `custom=1` для совместимости без developer_mode
 
 ---
 
@@ -280,14 +320,44 @@ Client Scripts выполняются в браузере пользовател
 **Основные функции:**
 
 1. **get_nextcloud_config()** - получение настроек из Single DocType
-2. **track_folder_changes()** - отслеживание изменений папок
-3. **track_file_deletions()** - отслеживание удаления файлов
-4. **upload_to_nextcloud()** - загрузка файлов в NextCloud
-5. **delete_from_nextcloud()** - удаление файлов из NextCloud
+2. **get_nextcloud_file_id()** - получение file_id через WebDAV PROPFIND (v0.0.2.6+)
+3. **track_folder_changes()** - отслеживание изменений папок
+4. **track_file_deletions()** - отслеживание удаления файлов
+5. **upload_to_nextcloud()** - загрузка файлов в NextCloud
+6. **delete_from_nextcloud()** - удаление файлов из NextCloud
+7. **sync_document_to_nextcloud()** - ручная синхронизация (whitelist)
 
-### 7.2 WebDAV операции
+### 7.2 Новое в v0.0.2.6: Direct File Links
+
+**Функция get_nextcloud_file_id():**
+```python
+def get_nextcloud_file_id(file_path, config):
+    """
+    Получить file_id файла в NextCloud через WebDAV PROPFIND.
+    
+    Поддержка двух namespace:
+    - oc:fileid (OwnCloud / старый NextCloud)
+    - nc:fileid (NextCloud 25+)
+    """
+    propfind_xml = '''<?xml version="1.0"?>
+    <d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+      <d:prop><oc:fileid/><nc:fileid/></d:prop>
+    </d:propfind>'''
+    
+    response = requests.request('PROPFIND', url, data=propfind_xml, ...)
+    # Парсинг XML → возвращает file_id (str) или None
+```
+
+**Формат file_url:**
+- **До v0.0.2.6:** `https://cloud/apps/files/?dir=/Projects/Test` ❌ (папка)
+- **С v0.0.2.6:** `https://cloud/apps/files/files/123456?openfile=true` ✅ (файл)
+
+### 7.3 WebDAV операции
 
 ```python
+# PROPFIND - получение file_id
+response = requests.request('PROPFIND', file_url, data=propfind_xml, auth=auth)
+
 # MKCOL - создание папки
 response = requests.request('MKCOL', folder_url, auth=auth)
 

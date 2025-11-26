@@ -1,7 +1,7 @@
 # 🔧 Fixtures в Company Documents App: Что устанавливается
 
-**Версия:** v0.0.2.4  
-**Дата:** 2025-11-23  
+**Версия:** v0.0.2.6  
+**Дата:** 2025-06-24  
 **Назначение:** Описание ВСЕГО что устанавливается через fixtures и КАК это работает
 
 ---
@@ -14,7 +14,9 @@
 4. [Критичные поля](#4-критичные-поля)
 5. [Механизм обновления](#5-механизм-обновления)
 6. [Детальная таблица fixtures](#6-детальная-таблица-fixtures)
-7. [Выводы](#7-выводы)
+7. [Nested Set порядок (FST)](#7-nested-set-порядок-fst)
+8. [custom: 1 - избавление от developer_mode](#8-custom-1---избавление-от-developer_mode)
+9. [Выводы](#9-выводы)
 
 ---
 
@@ -58,8 +60,7 @@
 
 ```python
 fixtures = [
-    {"dt": "DocType", "filters": [["module", "=", "Documents"]]},
-    {"dt": "DocType", "filters": [["module", "=", "Projects"]]},
+    {"dt": "DocType", "filters": [["app", "=", "company_documents"]]},  # ⚠️ фильтр по app!
     {"dt": "Server Script"},
     {"dt": "Client Script"},
     {"dt": "Custom Field", "filters": [["module", "in", ["Documents", "Projects"]]]},
@@ -70,8 +71,13 @@ fixtures = [
 ]
 ```
 
+**⚠️ Важное изменение в v0.0.2.6:** 
+- Фильтр DocType изменён с `module` на `app` 
+- Это гарантирует экспорт только наших DocTypes, не затрагивая системные
+
 **Принцип:** Экспортируем ВСЁ что:
-- Имеет `module = "Documents"` или `module = "Projects"`
+- Имеет `app = "company_documents"` (для DocType)
+- ИЛИ имеет `module = "Documents"` или `module = "Projects"` (для Custom Field, Property Setter)
 - ИЛИ является Server/Client Script (независимо от модуля)
 - ИЛИ является Folder Structure Template / Naming Rule / Workspace
 
@@ -81,16 +87,16 @@ fixtures = [
 
 | Fixture | Файл | Размер | Записей | Назначение |
 |---------|------|--------|---------|------------|
-| DocType | doctype.json | 82 KB | 5 | Структура БД (таблицы, поля, права) |
-| Server Script | server_script.json | 18 KB | 6 | Python логика на сервере |
-| Client Script | client_script.json | 13 KB | 7 | JavaScript логика в браузере |
-| Folder Structure Template | folder_structure_template.json | 17 KB | 45 | Иерархия папок (3 корневых + 42 дочерних) |
-| Document Naming Rule | document_naming_rule.json | 282 B | 1 | Правило автонумерации DOC-2025-00001 |
-| Custom Field | custom_field.json | 2 B | 0 | Пусто (нет кастомизаций стандартных DocTypes) |
-| Property Setter | property_setter.json | 2 B | 0 | Пусто |
-| Workspace | workspace.json | 2.4 KB | 1 | UI меню "Documents App" |
+| DocType | doctype.json | ~82 KB | 5 | Структура БД (таблицы, поля, права) |
+| Server Script | server_script.json | ~18 KB | 6 | Python логика на сервере |
+| Client Script | client_script.json | ~13 KB | 7 | JavaScript логика в браузере |
+| Folder Structure Template | folder_structure_template.json | ~40 KB | **84** | Иерархия папок (**3 корневых + 81 дочерних**) |
+| Document Naming Rule | document_naming_rule.json | ~282 B | 1 | Правило автонумерации DOC-2025-00001 |
+| Custom Field | custom_field.json | ~2 B | 0 | Пусто (нет кастомизаций стандартных DocTypes) |
+| Property Setter | property_setter.json | ~2 B | 0 | Пусто |
+| Workspace | workspace.json | ~2.4 KB | 1 | UI меню "Documents App" |
 
-**Общий объём:** ~132 KB, 65 записей
+**Общий объём:** ~160 KB, **104 записи**
 
 ### Порядок импорта
 
@@ -150,27 +156,125 @@ docker compose exec backend bench --site localhost export-fixtures
 
 | Fixture | Файл | Размер | Записей | Критичные поля | Назначение |
 |---------|------|--------|---------|----------------|------------|
-| DocType | doctype.json | 82 KB | 5 | `name`, `fields`, `permissions` | Структура БД |
-| Server Script | server_script.json | 18 KB | 6 | `disabled`, `script` | Серверная логика |
-| Client Script | client_script.json | 13 KB | 7 | `enabled`, `script` | Клиентская логика |
-| Folder Structure Template | folder_structure_template.json | 17 KB | 45 | `order`, `parent_*` | Иерархия папок |
-| Document Naming Rule | document_naming_rule.json | 282 B | 1 | **`counter`** ⚠️ | Нумерация документов |
-| Custom Field | custom_field.json | 2 B | 0 | - | Кастомные поля (пусто) |
-| Property Setter | property_setter.json | 2 B | 0 | - | Настройки полей (пусто) |
-| Workspace | workspace.json | 2.4 KB | 1 | `links` | UI меню |
+| DocType | doctype.json | ~82 KB | 5 | `name`, `fields`, `permissions`, **`custom`** | Структура БД |
+| Server Script | server_script.json | ~18 KB | 6 | `disabled`, `script` | Серверная логика |
+| Client Script | client_script.json | ~13 KB | 7 | `enabled`, `script` | Клиентская логика |
+| Folder Structure Template | folder_structure_template.json | ~40 KB | **84** | `parent_*`, **порядок записей** | Иерархия папок |
+| Document Naming Rule | document_naming_rule.json | ~282 B | 1 | **`counter`** ⚠️ | Нумерация документов |
+| Custom Field | custom_field.json | ~2 B | 0 | - | Кастомные поля (пусто) |
+| Property Setter | property_setter.json | ~2 B | 0 | - | Настройки полей (пусто) |
+| Workspace | workspace.json | ~2.4 KB | 1 | `links` | UI меню |
 
-**Общий размер:** ~132 KB (65 записей)
+**Общий размер:** ~160 KB (**104 записи**)
 
 ---
 
-## 7. Выводы
+## 7. Nested Set порядок (FST)
+
+**Проблема:** Folder Structure Template использует Nested Set модель. При импорте Frappe вычисляет `lft` и `rgt` на лету. Если дочерний элемент появляется в JSON **до** своего родителя, возникает ошибка:
+
+```
+TypeError: cannot unpack non-iterable NoneType object
+```
+
+**Причина:** Frappe пытается найти `lft`/`rgt` родителя, который ещё не создан.
+
+### Правильный порядок в JSON
+
+```json
+[
+  {"name": "FST-0001", "parent_folder_structure_template": null},  // ✅ root first
+  {"name": "FST-0002", "parent_folder_structure_template": null},  // ✅ root
+  {"name": "FST-0003", "parent_folder_structure_template": null},  // ✅ root
+  {"name": "FST-0004", "parent_folder_structure_template": "FST-0001"},  // ✅ child after parent
+  {"name": "FST-0005", "parent_folder_structure_template": "FST-0001"},  // ✅ child after parent
+  ...
+]
+```
+
+### Топологическая сортировка
+
+Для автоматической проверки и исправления используйте:
+
+```bash
+# Проверка
+python3 scripts/validate_fst_order.py
+
+# Исправление (топологическая сортировка)
+python3 scripts/fix_fst_order.py
+```
+
+### Pre-commit hook
+
+Pre-commit hook автоматически проверяет порядок FST при каждом коммите:
+
+```bash
+# Установка
+./scripts/install-hooks.sh
+
+# Проверка вручную
+./scripts/pre-commit-hook.sh
+```
+
+### Текущая статистика FST (v0.0.2.6)
+
+- **84 записи** (было 45 в v0.0.2.4)
+- **3 корневых элемента:** FST-0001, FST-0002, FST-0003
+- **81 дочерних элемент**
+
+---
+
+## 8. custom: 1 - избавление от developer_mode
+
+### Проблема
+
+В ранних версиях DocTypes использовали `custom: 0` (стандартные DocTypes). Это требовало:
+1. Наличия Python-файлов в `company_documents/doctype/<name>/`
+2. `developer_mode = 1` для импорта fixtures
+
+При `developer_mode = 0` Frappe выдавал:
+```
+CannotCreateStandardDoctypeError: Not in Developer Mode!
+```
+
+### Решение (v0.0.2.6)
+
+Все DocTypes теперь используют `custom: 1`:
+
+```json
+{
+  "name": "Document",
+  "custom": 1,
+  "module": "Documents",
+  ...
+}
+```
+
+**Преимущества:**
+- ✅ НЕ требует developer_mode
+- ✅ НЕ требует Python-файлов (`doctype/<name>/<name>.py`)
+- ✅ Fixtures импортируются автоматически
+- ✅ Структура DocType хранится в БД, не в файлах
+
+### Важно
+
+При экспорте fixtures (`bench export-fixtures`) убедитесь, что все DocTypes имеют `custom: 1`. Если экспорт содержит `custom: 0`, измените вручную или через SQL:
+
+```sql
+UPDATE tabDocType SET custom = 1 WHERE module = 'Documents';
+```
+
+---
+
+## 9. Выводы
 
 **Ключевые моменты:**
 
 1. ✅ Fixtures импортируются автоматически при `--install-app`
-2. ⚠️ `counter` в Document Naming Rule сохраняется из разработки → нужно сбрасывать вручную
-3. ✅ Server Scripts могут быть `disabled: 1` → активная логика в `nextcloud_sync.py`
-4. ⚠️ Удаление из tabSeries НЕ сбрасывает счётчик → нужно удалять сам Document Naming Rule
+2. ✅ **custom: 1** для всех DocTypes → не требует developer_mode
+3. ⚠️ **FST порядок** критичен → родители ПЕРЕД дочерними (nested set)
+4. ⚠️ `counter` в Document Naming Rule сохраняется из разработки → нужно сбрасывать вручную
+5. ✅ Server Scripts могут быть `disabled: 1` → активная логика в `nextcloud_sync.py` и `custom/document.py`
 
 **Основные команды:**
 ```bash
@@ -179,12 +283,16 @@ bench export-fixtures
 
 # Проверка порядка FST
 python3 scripts/validate_fst_order.py
+
+# Исправление порядка FST
+python3 scripts/fix_fst_order.py
 ```
 
 **Подробности:**
 - Нумерация: [NAMING_MECHANISM.md](./NAMING_MECHANISM.md)
 - Установка: [../installation.md](../installation.md)
+- Логика Document: [../DOCUMENT_LOGIC.md](../DOCUMENT_LOGIC.md)
 
 ---
 
-**Версия:** 1.1 (краткая)
+**Версия:** 2.0 (v0.0.2.6)

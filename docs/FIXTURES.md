@@ -1,7 +1,7 @@
 # 📦 Fixtures - Конфигурация и экспорт
 
-**Версия:** v0.0.2  
-**Дата:** 2025-11-20  
+**Версия:** v0.0.2.6  
+**Дата:** 2025-11-26  
 **Файл:** company_documents/hooks.py
 
 ---
@@ -27,7 +27,7 @@
 
 ---
 
-## 2. Текущая конфигурация fixtures
+## 2. Текущая конфигурация fixtures (v0.0.2.6)
 
 ### 2.1 Конфигурация в hooks.py
 
@@ -35,49 +35,38 @@
 # company_documents/hooks.py
 
 fixtures = [
-    # DocTypes из модуля Documents
-    {
-        "dt": "DocType",
-        "filters": [
-            ["module", "=", "Documents"],
-            ["custom", "=", 1]
-        ]
-    },
+    # 1. DocTypes - фильтр по app (НЕ по module!)
+    {"dt": "DocType", "filters": [["app", "=", "company_documents"]]},
     
-    # DocTypes из модуля Projects
-    {
-        "dt": "DocType",
-        "filters": [
-            ["module", "=", "Projects"],
-            ["custom", "=", 1]
-        ]
-    },
+    # 2. Server Scripts - фильтр по module
+    {"dt": "Server Script", "filters": [["module", "=", "Documents"]]},
     
-    # Все Server Scripts
-    {"dt": "Server Script"},
+    # 3. Client Scripts - фильтр по dt (наши DocTypes)
+    {"dt": "Client Script", "filters": [
+        ["dt", "in", ["Document", "Document File", "NextCloud Sync Settings", "Folder Structure Template"]]
+    ]},
     
-    # Все Client Scripts
-    {"dt": "Client Script"},
+    # 4. Custom Fields
+    {"dt": "Custom Field", "filters": [["module", "=", "Documents"]]},
     
-    # Custom Fields
-    {
-        "dt": "Custom Field",
-        "filters": [["module", "in", ["Documents", "Projects"]]]
-    },
+    # 5. Property Setters
+    {"dt": "Property Setter", "filters": [["module", "=", "Documents"]]},
     
-    # Property Setters
-    {
-        "dt": "Property Setter",
-        "filters": [["module", "in", ["Documents", "Projects"]]]
-    },
-    
-    # Folder Structure Templates
+    # 6. Folder Structure Templates (все 84 записи)
     {"dt": "Folder Structure Template"},
     
-    # Document Naming Rule
-    {
-        "dt": "Document Naming Rule",
-        "filters": [["document_type", "=", "Document"]]
+    # 7. Document Naming Rule
+    {"dt": "Document Naming Rule", "filters": [["document_type", "=", "Document"]]},
+    
+    # 8. Workspace
+    {"dt": "Workspace", "filters": [["title", "=", "Documents App"]]}
+]
+```
+
+**Ключевые изменения v0.0.2.6:**
+- ✅ Фильтр DocTypes по `app` вместо `module` + `custom`
+- ✅ Client Scripts фильтруются по `dt` (конкретные DocTypes)
+- ✅ Server Scripts фильтруются по `module=Documents`
     },
     
     # Workspace
@@ -88,19 +77,20 @@ fixtures = [
 ]
 ```
 
-### 2.2 Что экспортируется
+### 2.2 Что экспортируется (v0.0.2.6)
 
 | Тип данных | Фильтр | Количество |
 |------------|--------|------------|
-| DocType | module=Documents, custom=1 | ~5 |
-| DocType | module=Projects, custom=1 | ~4 |
-| Server Script | все | 5 |
-| Client Script | все | 7 |
-| Custom Field | module in [Documents, Projects] | несколько |
-| Property Setter | module in [Documents, Projects] | несколько |
-| Folder Structure Template | все | 45 |
+| DocType | app=company_documents | 5 (Document, Document File, FST, NextCloud Sync Settings, Task Document Link) |
+| Server Script | module=Documents | несколько |
+| Client Script | dt in [Document, Document File, ...] | 6 |
+| Custom Field | module=Documents | 0 (пусто) |
+| Property Setter | module=Documents | 0 (пусто) |
+| Folder Structure Template | все | **84** (3 корневых + 81 дочерних) |
 | Document Naming Rule | document_type=Document | 1 |
-| Workspace | title="Documents app" | 1 |
+| Workspace | title="Documents App" | 1 |
+
+**⚠️ Важно:** Все DocTypes имеют `custom=1` - это позволяет устанавливать их без `developer_mode`.
 
 ---
 
@@ -565,11 +555,82 @@ docker compose exec backend bench --site localhost list-apps
 
 ---
 
-## 12. Миграция fixtures (будущее)
+## 12. Folder Structure Template - Nested Set
 
-### 12.1 Когда нужны миграции?
+### 12.1 Что такое Nested Set?
 
-**В v0.0.2:** Миграции **НЕ используются** (ПОЛИГОН)
+**Nested Set** - способ хранения иерархических данных в Frappe. FST использует его для древовидной структуры папок.
+
+**Проблема:** При импорте fixtures порядок записей критичен - **родители должны быть перед детьми!**
+
+### 12.2 Ошибка при неправильном порядке
+
+```
+cannot unpack non-iterable NoneType object
+```
+
+**Причина:** Frappe пытается вставить дочерний элемент, но родитель ещё не создан → `lft`, `rgt` = None.
+
+### 12.3 Правильный порядок в JSON
+
+```json
+[
+  {"name": "FST-0001", "parent_folder_structure_template": null, "level": 1},  // ✅ Root первый
+  {"name": "FST-0002", "parent_folder_structure_template": null, "level": 1},  // ✅ Root
+  {"name": "FST-0004", "parent_folder_structure_template": "FST-0001", "level": 2},  // ✅ Child после родителя
+  ...
+]
+```
+
+### 12.4 Pre-commit hook для валидации
+
+Скрипт `scripts/validate_fst_order.py` проверяет порядок при коммите:
+
+```bash
+# Ручная проверка
+python3 scripts/validate_fst_order.py
+
+# Вывод при успехе:
+# ✅ VALIDATION PASSED: All 84 records are in correct order!
+# Order verification:
+#   - Root elements: 3
+#   - Child elements: 81
+```
+
+**Установка hook:**
+```bash
+./scripts/install-hooks.sh
+```
+
+---
+
+## 13. custom=1 vs custom=0
+
+### 13.1 В чём разница?
+
+| Флаг | Значение | developer_mode | Где код |
+|------|----------|----------------|---------|
+| `custom=0` | "Стандартный" DocType | ✅ Требуется | `documents/doctype/document/` |
+| `custom=1` | "Кастомный" DocType | ❌ Не требуется | Только в fixtures JSON |
+
+### 13.2 Почему мы используем custom=1?
+
+**Преимущества:**
+- ✅ Установка без `developer_mode`
+- ✅ Не нужны Python файлы структуры DocType
+- ✅ Весь DocType в одном JSON
+
+**Важно:** Логика (validate, on_update) реализована через:
+- `hooks.py` → `doc_events`
+- `custom/document.py` → функции
+
+---
+
+## 14. Миграция fixtures (будущее)
+
+### 14.1 Когда нужны миграции?
+
+**В v0.0.2.6:** Миграции **НЕ используются** (ПОЛИГОН)
 
 **В будущем (v1.0.0+):**
 - Изменение структуры DocType
@@ -577,7 +638,7 @@ docker compose exec backend bench --site localhost list-apps
 - Изменение названий полей
 - Удаление старых DocTypes
 
-### 12.2 Пример миграции
+### 14.2 Пример миграции
 
 ```python
 # company_documents/patches/v1_0/update_document_doctype.py
@@ -606,9 +667,10 @@ def execute():
 ## Ссылки
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - структура DocTypes
+- **[DOCUMENT_LOGIC.md](DOCUMENT_LOGIC.md)** - логика работы Document
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** - процесс разработки
 - **[Frappe Fixtures Documentation](https://frappeframework.com/docs/user/en/basics/fixtures)** - официальная документация
 
 ---
 
-**Последнее обновление:** 2025-11-20
+**Последнее обновление:** 2025-11-26
