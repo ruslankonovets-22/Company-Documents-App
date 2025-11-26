@@ -589,10 +589,19 @@ def sync_document_to_nextcloud(docname):
                 remote = f"{folder_path}/{os.path.basename(local)}"
                 
                 if upload_file_to_nextcloud(local, remote, config):
-                    f.file_url = folder_url
+                    # Получить file_id для прямой ссылки на файл
+                    filename = os.path.basename(local)
+                    full_path = f"{folder_path}/{filename}"
+                    file_id = get_nextcloud_file_id(full_path, config)
+                    
+                    if file_id:
+                        f.file_url = f"{config['url']}/apps/files/files/{file_id}?dir=/{quote(folder_path)}&openfile=true"
+                    else:
+                        f.file_url = folder_url  # Fallback на папку
+                    
                     f.file_synced = 1
                     uploaded += 1
-                    frappe.msgprint(f'OK {os.path.basename(local)}', indicator='green')
+                    frappe.msgprint(f'OK {filename}', indicator='green')
                 else:
                     frappe.msgprint(f'Ошибка загрузки: {os.path.basename(local)}', indicator='red')
             

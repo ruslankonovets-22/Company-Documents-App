@@ -4,10 +4,13 @@ app_publisher = "Your Company"
 app_description = "Document management system with NextCloud sync"
 app_email = "ruslankonovets@gmail.com"
 app_license = "mit"
-app_version = "0.0.2.5"
+app_version = "0.0.2.6"
 
 doc_events = {
     "Document": {
+        "validate": [
+            "company_documents.custom.document.validate"
+        ],
         "on_update": [
             "company_documents.nextcloud_sync.track_folder_changes",
             "company_documents.nextcloud_sync.track_file_deletions",
