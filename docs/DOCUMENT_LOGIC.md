@@ -10,6 +10,20 @@
 
 ---
 
+## Содержание
+
+1. [Обзор](#1-обзор)
+2. [Структура полей DocType](#2-структура-полей-doctype)
+3. [Автоматические расчёты (validate hook)](#3-автоматические-расчёты-validate-hook)
+4. [NextCloud Sync - Поток синхронизации](#4-nextcloud-sync---поток-синхронизации)
+5. [Child Table: Document File](#5-child-table-document-file)
+6. [Client Scripts](#6-client-scripts)
+7. [Примеры использования](#7-примеры-использования)
+8. [**Архитектурные решения: ПОЧЕМУ так сделано**](#8-архитектурные-решения-почему-так-сделано)
+9. [Troubleshooting](#9-troubleshooting)
+
+---
+
 ## 1. Обзор
 
 **Document** - основной DocType для управления документами проекта с автоматической синхронизацией в NextCloud.
@@ -293,9 +307,122 @@ frappe.ui.form.on("Document", {
 
 ---
 
-## 8. Troubleshooting
+## 8. Архитектурные решения: ПОЧЕМУ так сделано
 
-### 8.1 Файлы не загружаются
+### 8.1 Почему функция, а не класс?
+
+**Стандартный подход Frappe (для custom: 0):**
+```python
+# doctype/document/document.py
+class Document(Document):
+    def validate(self):
+        self.calculate_dates()
+```
+
+**Наш подход (для custom: 1):**
+```python
+# custom/document.py
+def validate(doc, method):
+    # doc - это объект Document
+    doc.planned_end_date = add_days(doc.start_date, doc.planned_days)
+```
+
+**Причина:** Frappe hook-система ожидает **функцию с сигнатурой `(doc, method)`**:
+- `doc` - объект документа (frappe.model.document.Document)
+- `method` - имя события ("validate", "on_update" и т.д.)
+
+Классовый метод (`self.validate()`) работает только для DocTypes с `custom: 0`, которые имеют Python-файл в `doctype/<name>/<name>.py`. Наши DocTypes используют `custom: 1` → Python-файлов нет → нужны функции в hooks.
+
+### 8.2 Почему custom: 1?
+
+| Критерий | custom: 0 | custom: 1 |
+|----------|-----------|-----------|
+| Python-файлы | Требуются (`doctype/*/`) | НЕ требуются |
+| developer_mode | Требуется для fixtures | НЕ требуется |
+| Структура | В файлах | В БД |
+| Редактирование | Через код | Через UI (Customize Form) |
+
+**Наш выбор `custom: 1` потому что:**
+1. ❌ Не хотим заставлять юзеров включать `developer_mode`
+2. ❌ Не хотим поддерживать кучу Python-файлов для каждого DocType
+3. ✅ Fixtures импортируются автоматически без проблем
+4. ✅ Структура DocType полностью в JSON → проще версионирование
+
+### 8.3 Почему validate вместо on_update?
+
+```
+                    validate        DB write        on_update
+Timeline: ────────────│─────────────────│─────────────│─────────────>
+                      ↑                 ↑             ↑
+                 ДО записи в БД   Запись в БД   ПОСЛЕ записи в БД
+```
+
+| Event | Когда | Можно изменить doc? | Использование |
+|-------|-------|---------------------|---------------|
+| **validate** | ДО записи | ✅ ДА | Расчёты, валидация |
+| **on_update** | ПОСЛЕ записи | ⚠️ Только через отдельный save | Внешние операции (API, файлы) |
+
+**Наш выбор:**
+- `validate` → расчёты (planned_end_date, files_count, overdue)
+- `on_update` → NextCloud операции (загрузка/удаление файлов)
+
+**Почему?**
+- Расчёты должны попасть в БД с первым же save → **validate**
+- NextCloud операции не влияют на Document → безопасно в **on_update**
+
+### 8.4 Расположение файлов
+
+```
+company_documents/
+├── custom/
+│   └── document.py      # validate функция для Document
+├── nextcloud_sync.py    # on_update функции (NextCloud)
+└── hooks.py             # Регистрация событий
+```
+
+**Почему `custom/document.py`, а не `doctype/document/document.py`?**
+
+1. `doctype/document/` — зарезервировано для DocTypes с `custom: 0`
+2. Frappe ищет там **класс** Document (который наследует от Document)
+3. Мы используем `custom: 1` → такого класса нет и не нужно
+4. `custom/` — наша папка для функций-hooks
+
+**Почему отдельный `nextcloud_sync.py`?**
+
+- ~620 строк WebDAV-логики
+- Функционально отдельная область (работа с внешним API)
+- Легче поддерживать и тестировать отдельно
+
+### 8.5 Порядок функций в hooks.py
+
+```python
+doc_events = {
+    "Document": {
+        "validate": [
+            "company_documents.custom.document.validate"  # 1️⃣ Расчёты
+        ],
+        "on_update": [
+            "company_documents.nextcloud_sync.track_folder_changes",   # 2️⃣
+            "company_documents.nextcloud_sync.track_file_deletions",   # 3️⃣
+            "company_documents.nextcloud_sync.upload_to_nextcloud",    # 4️⃣
+            "company_documents.nextcloud_sync.delete_from_nextcloud"   # 5️⃣
+        ]
+    }
+}
+```
+
+**Порядок важен:**
+1. **validate** — сначала все расчёты (они попадут в БД)
+2. **track_folder_changes** — определить старый путь (до того как файлы двинутся)
+3. **track_file_deletions** — запомнить что удалено
+4. **upload_to_nextcloud** — загрузить новые/перемещённые
+5. **delete_from_nextcloud** — удалить старые
+
+---
+
+## 9. Troubleshooting
+
+### 9.1 Файлы не загружаются
 
 **Проверить:**
 1. NextCloud Sync Settings → Enabled = ✓
@@ -307,18 +434,32 @@ frappe.ui.form.on("Document", {
 docker exec backend bench --site localhost show-error-log
 ```
 
-### 8.2 file_url ведёт на папку, а не на файл
+### 9.2 file_url ведёт на папку, а не на файл
 
 **Причина:** file_id не получен через PROPFIND
 
 **Решение:** Перезапустить backend и пересохранить Document
 
-### 8.3 planned_end_date не рассчитывается
+### 9.3 planned_end_date не рассчитывается
 
 **Проверить:**
 1. `start_date` заполнен
 2. `planned_days` > 0
 3. hooks.py содержит validate event
+
+### 9.4 "validate" функция не вызывается
+
+**Проверить:**
+1. hooks.py содержит правильный путь: `company_documents.custom.document.validate`
+2. Файл `company_documents/custom/document.py` существует
+3. Функция имеет сигнатуру `def validate(doc, method):`
+
+**Тест:**
+```python
+# В bench console
+from company_documents.custom.document import validate
+print(validate)  # <function validate at 0x...>
+```
 
 ---
 
