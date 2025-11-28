@@ -263,22 +263,6 @@ class ProjectDocumentsController {
         return '<a href="/app/employee/' + employee + '" style="color:#2563eb;text-decoration:none" title="' + employee + '">' + displayName + '</a>';
     }
 
-    renderDate(dateValue) {
-        if (!dateValue) return '<span style="color:#9ca3af">—</span>';
-        return frappe.datetime.str_to_user(dateValue);
-    }
-
-    renderPlannedDays(days) {
-        if (!days && days !== 0) return '<span style="color:#9ca3af">—</span>';
-        return '<span style="font-weight:500">' + days + '</span>';
-    }
-
-    renderResponsible(employee) {
-        if (!employee) return '<span style="color:#9ca3af">—</span>';
-        const displayName = this.employeeNames[employee] || employee;
-        return '<a href="/app/employee/' + employee + '" style="color:#2563eb;text-decoration:none" title="' + employee + '">' + displayName + '</a>';
-    }
-
     renderFilesCell(doc) {
         const attached = doc.files_count || 0;
         const required = doc.expected_files || 1;

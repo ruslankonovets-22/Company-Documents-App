@@ -35,14 +35,15 @@
 company_documents/
 ├── __init__.py
 ├── hooks.py                           # Конфигурация приложения
-├── nextcloud_sync.py                  # NextCloud интеграция (473 строки)
+├── api.py                             # API методы для UI (v0.0.2.6+)
+├── nextcloud_sync.py                  # NextCloud интеграция (644 строки)
 ├── patches.txt                        # Миграции (пусто в v0.0.2)
 ├── modules.txt                        # Модули
 │
 ├── fixtures/                          # Данные для установки
 │   ├── doctype.json                   # 5 DocTypes (custom=1)
-│   ├── server_script.json             # Server Scripts
-│   ├── client_script.json             # 6 Client Scripts
+│   ├── server_script.json             # 5 Server Scripts
+│   ├── client_script.json             # 7 Client Scripts
 │   ├── folder_structure_template.json # 84 шаблона (3 корневых + 81 дочерних)
 │   ├── custom_field.json              # Кастомные поля
 │   ├── property_setter.json           # Настройки свойств
@@ -54,28 +55,35 @@ company_documents/
 │   └── document.py                    # validate() для Document
 │
 ├── documents/                         # Модуль Documents
-│   └── doctype/
-│       ├── document/                  # DocType: Document
-│       ├── document_file/             # DocType: Document File
-│       ├── folder_structure_template/ # DocType: Folder Structure Template
-│       └── nextcloud_sync_settings/   # DocType: NextCloud Sync Settings
+│   ├── __init__.py
+│   └── page/                          # Custom Pages
+│       └── project_documents/         # Page: Project Documents (v0.0.2.7)
+│           ├── __init__.py
+│           ├── project_documents.json # Конфигурация страницы
+│           ├── project_documents.html # HTML шаблон
+│           └── project_documents.js   # JavaScript контроллер
 │
-├── projects/                          # Модуль Projects
-│   └── doctype/
-│       ├── task_document_link/        # DocType: Task Document Link
-│       ├── project_document_type/     # DocType: Project Document Type
-│       ├── task_employee/             # DocType: Task Employee
-│       ├── cila_document_row/         # DocType: CILA Document Row
-│       └── task_workspace_row/        # DocType: Task Workspace Row
+├── templates/                         # Jinja2 шаблоны
+│   ├── __init__.py
+│   ├── pages/
+│   └── includes/
 │
-├── templates/                         # Шаблоны
-├── public/                           # Статические файлы
-└── config/                           # Конфигурация
+├── public/                            # Статические файлы
+│   ├── css/
+│   └── js/
+│
+├── www/                               # Web pages
+│
+└── config/                            # Конфигурация модуля
+    └── __init__.py
 ```
+
+**⚠️ ВАЖНО:** DocTypes хранятся в `fixtures/doctype.json`, а не в отдельных папках!
+В fixtures-based подходе нет папок `doctype/` - всё определяется через JSON fixtures.
 
 ---
 
-## 3. DocTypes (9 типов документов)
+## 3. DocTypes (5 типов документов)
 
 ### 3.1 Основные DocTypes (5)
 
@@ -211,24 +219,8 @@ nc_password = get_decrypted_password(
 #### Task Document Link
 **Тип:** Document  
 **App:** company_documents  
-**Модуль:** Projects  
+**Модуль:** Documents  
 **Назначение:** Связь задач с документами
-
----
-
-### 3.2 Вспомогательные DocTypes (4)
-
-#### Project Document Type
-**Назначение:** Типы документов для проектов
-
-#### Task Employee
-**Назначение:** Назначение сотрудников на задачи
-
-#### CILA Document Row
-**Назначение:** Строки CILA документов (legacy)
-
-#### Task Workspace Row
-**Назначение:** Воркспейсы задач
 
 ---
 
@@ -237,7 +229,7 @@ nc_password = get_decrypted_password(
 ```python
 app_name = "company_documents"
 app_title = "Company Documents"
-app_version = "0.0.2.6"
+app_version = "0.0.2.7"
 
 # Document Events - validate + 4 функции on_update
 doc_events = {

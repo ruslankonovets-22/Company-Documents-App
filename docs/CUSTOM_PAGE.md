@@ -49,23 +49,21 @@ company_documents/documents/page/project_documents/
 ```json
 {
     "content": null,
+    "creation": "2025-11-27 08:00:00.000000",
     "docstatus": 0,
     "doctype": "Page",
-    "idx": 0,
-    "modified": "2025-01-20 16:12:02.803421",
+    "icon": "file-document",
+    "modified": "2025-11-27 08:00:00.000000",
     "modified_by": "Administrator",
     "module": "Documents",
     "name": "project-documents",
     "owner": "Administrator",
     "page_name": "project-documents",
-    "restrict_to_domain": "",
     "roles": [
         {"role": "System Manager"},
         {"role": "Projects User"}
     ],
-    "script": null,
     "standard": "Yes",
-    "style": null,
     "system_page": 0,
     "title": "Project Documents"
 }
@@ -83,22 +81,32 @@ company_documents/documents/page/project_documents/
 
 ## JavaScript Controller (project_documents.js)
 
+### Инициализация страницы
+
+```javascript
+frappe.pages["project-documents"].on_page_load = function(wrapper) {
+    const page = frappe.ui.make_app_page({
+        parent: wrapper,
+        title: "Project Documents",
+        single_column: true
+    });
+    new ProjectDocumentsController(page);
+};
+```
+
 ### Класс ProjectDocumentsController
 
 ```javascript
 class ProjectDocumentsController {
-    constructor(wrapper) {
-        this.page = frappe.ui.make_app_page({
-            parent: wrapper,
-            title: 'Project Documents',
-            single_column: true
-        });
-        this.currentView = 'table';  // По умолчанию табличный вид
+    constructor(page) {
+        this.page = page;
+        this.$page = $(page.body);
+        this.currentView = "table";
         this.currentProject = null;
-        this.treeData = {};
+        this.treeData = null;
         this.tableData = [];
         this.folderNames = {};
-        this.employeeNames = {};     // Словарь ФИО сотрудников
+        this.employeeNames = {};
         this.init();
     }
 }
@@ -108,10 +116,11 @@ class ProjectDocumentsController {
 
 | Свойство | Тип | Описание |
 |----------|-----|----------|
-| `page` | Object | Frappe Page object |
-| `currentView` | String | Текущий вид: `'table'` или `'tree'` |
-| `currentProject` | String | Выбранный проект (name) |
-| `treeData` | Object | Вложенная структура для Tree View |
+| `page` | Object | Frappe Page object (передан в constructor) |
+| `$page` | jQuery | jQuery-обёртка над `page.body` |
+| `currentView` | String | Текущий вид: `"table"` или `"tree"` |
+| `currentProject` | String/null | Выбранный проект (name) |
+| `treeData` | Object/null | Вложенная структура для Tree View |
 | `tableData` | Array | Плоский список документов для Table View |
 | `folderNames` | Object | Словарь `{fst_id: folder_name}` |
 | `employeeNames` | Object | Словарь `{employee_id: full_name}` |
@@ -133,11 +142,19 @@ class ProjectDocumentsController {
 
 ```javascript
 injectStyles() {
-    if (document.getElementById('pd-injected-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'pd-injected-styles';
+    if (document.getElementById("pd-custom-styles")) return;
+    const style = document.createElement("style");
+    style.id = "pd-custom-styles";
     style.textContent = `
-        /* Все CSS стили страницы */
+        .pd-tree-node:hover > .pd-tree-node-content { background: rgba(0,0,0,0.04); }
+        .pd-tree-node:hover > .pd-tree-children { background: rgba(59,130,246,0.06); border-radius: 4px; }
+        .pd-tree-document:hover { background: rgba(59,130,246,0.08) !important; }
+        .pd-table { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+        .pd-table th { background: #f9fafb; border-bottom: 2px solid #e5e7eb; padding: 12px 16px !important; }
+        .pd-table td { padding: 10px 16px !important; border-bottom: 1px solid #f3f4f6; }
+        .pd-table tr:nth-child(even) td { background: #fafafa; }
+        .pd-table tr:hover td { background: rgba(59,130,246,0.06) !important; }
+        /* ... колонки таблицы ... */
     `;
     document.head.appendChild(style);
 }
@@ -145,47 +162,62 @@ injectStyles() {
 
 ### loadData()
 
-Загружает данные из API в зависимости от выбранного режима:
+Загружает данные из API параллельно для обоих режимов:
 
 ```javascript
 loadData() {
-    if (!this.currentProject) return Promise.resolve();
-    const promises = [];
-
-    // Table View: плоский список документов
-    promises.push(frappe.call({
-        method: 'company_documents.api.get_project_document_overview',
-        args: { project: this.currentProject }
-    }).then(r => {
-        this.tableData = r.message || [];
-    }));
-
-    // Tree View: вложенная структура + метаданные
-    promises.push(frappe.call({
-        method: 'company_documents.api.get_project_document_tree',
-        args: { project: this.currentProject }
-    }).then(r => {
-        this.treeData = r.message?.tree || {};
-        this.folderNames = r.message?.folder_names || {};
-        this.employeeNames = r.message?.employee_names || {};
-    }));
-
-    return Promise.all(promises);
+    if (!this.currentProject) {
+        frappe.show_alert({ message: "Выберите проект", indicator: "orange" });
+        return;
+    }
+    
+    this.$content.html('<div class="pd-loading"><span class="spinner-border spinner-border-sm"></span> Загрузка...</div>');
+    
+    Promise.all([
+        frappe.call({ method: "company_documents.api.get_project_document_overview", args: { project: this.currentProject } }),
+        frappe.call({ method: "company_documents.api.get_project_document_tree", args: { project: this.currentProject } })
+    ]).then(([tableResp, treeResp]) => {
+        this.tableData = tableResp.message || [];
+        const treeResult = treeResp.message || {};
+        this.treeData = treeResult.tree || {};
+        this.folderNames = treeResult.folder_names || {};
+        this.employeeNames = treeResult.employee_names || {};
+        this.render();
+    }).catch(err => {
+        // Обработка ошибок: логирование в консоль + показ пользователю
+        console.error("Load error:", err);
+        this.$content.html('<div class="pd-empty"><div class="pd-empty-icon">⚠️</div><div>Ошибка загрузки данных</div></div>');
+    });
 }
+```
+
+#### Обработка ошибок
+
+При ошибке загрузки данных:
+1. Ошибка логируется в консоль (`console.error`)
+2. Пользователю показывается empty state с иконкой ⚠️
+3. Данные сбрасываются (treeData = null, tableData = [])
+
+```javascript
 ```
 
 ### render()
 
-Выбирает метод рендеринга на основе `currentView`:
+Рендерит интерфейс с заголовком, кнопками переключения и контентом:
 
 ```javascript
 render() {
-    const container = this.page.main.find('.pd-content');
-    if (this.currentView === 'table') {
-        container.html(this.renderTableView());
-    } else {
-        container.html(this.renderTreeView());
-    }
+    let html = '<div class="pd-header">';
+    html += '<div class="pd-project-info" title="Кликни чтобы сменить проект">📁 <strong>' + this.currentProject + '</strong></div>';
+    html += '<div class="pd-view-buttons">';
+    html += '<button class="pd-view-btn' + (this.currentView === "table" ? " active" : "") + '" data-view="table">📋 Таблица</button>';
+    html += '<button class="pd-view-btn' + (this.currentView === "tree" ? " active" : "") + '" data-view="tree">🌲 Дерево</button>';
+    html += '</div></div>';
+    html += '<div class="pd-content">';
+    html += this.currentView === "table" ? this.renderTableView() : this.renderTreeView();
+    html += '</div>';
+    this.$content.html(html);
+    this.bindEvents();
 }
 ```
 
@@ -195,30 +227,40 @@ render() {
 
 ```javascript
 bindEvents() {
-    // 1. Переключение видов (Table/Tree)
-    this.page.main.on('click', '.pd-view-btn', (e) => {
-        const view = $(e.currentTarget).data('view');
-        this.currentView = view;
-        this.page.main.find('.pd-view-btn').removeClass('active');
-        $(e.currentTarget).addClass('active');
+    // Переключение видов (Table/Tree)
+    this.$content.find(".pd-view-btn").on("click", (e) => {
+        this.currentView = $(e.currentTarget).data("view");
         this.render();
     });
-
-    // 2. Сворачивание/разворачивание папок в Tree View
-    this.page.main.on('click', '.pd-tree-node-content', (e) => {
-        const node = $(e.currentTarget).closest('.pd-tree-node');
-        const children = node.children('.pd-tree-children');
-        const toggle = node.find('> .pd-tree-node-content .pd-tree-toggle');
-        if (!toggle.hasClass('empty')) {
-            children.slideToggle(200);
-            toggle.toggleClass('expanded');
+    
+    // Клик по названию проекта - возврат к выбору
+    this.$content.find(".pd-project-info").on("click", () => {
+        this.renderProjectSelector();
+    });
+    
+    // Сворачивание/разворачивание папок в Tree View
+    // Анимация: slideUp/slideDown(150) - 150ms для плавности
+    this.$content.find(".pd-tree-node-content").on("click", function(e) {
+        e.stopPropagation();
+        const $toggle = $(this).find(".pd-tree-toggle");
+        if ($toggle.hasClass("empty")) return;
+        
+        const $node = $(this).closest(".pd-tree-node");
+        const $children = $node.find("> .pd-tree-children");
+        
+        if ($children.is(":visible")) {
+            $children.slideUp(150);  // Анимация сворачивания 150ms
+            $toggle.removeClass("expanded");
+        } else {
+            $children.slideDown(150); // Анимация разворачивания 150ms
+            $toggle.addClass("expanded");
         }
     });
-
-    // 3. Клик по документу - открытие формы
-    this.page.main.on('click', '.pd-tree-document', (e) => {
-        const docName = $(e.currentTarget).data('name');
-        frappe.set_route('Form', 'Project Documents', docName);
+    
+    // Клик по документу - открытие формы
+    this.$content.find(".pd-tree-document").on("click", function(e) {
+        e.stopPropagation();
+        frappe.set_route("Form", "Document", $(this).data("name"));
     });
 }
 ```
@@ -233,66 +275,111 @@ bindEvents() {
 
 | # | Колонка | min-width | Описание |
 |---|---------|-----------|----------|
-| 1 | Путь | 200px | Полный путь: `Корень › Подпапка › Папка` |
-| 2 | Документ | 150px | Имя документа (ссылка) |
-| 3 | Статус | 110px | Цветной бейдж статуса |
-| 4 | Дедлайн | 90px | Дата или `не задан` |
-| 5 | Дата запроса | 100px | Форматированная дата |
-| 6 | План дней | 80px | Количество или `—` |
-| 7 | Ответственный | 120px | ФИО сотрудника |
-| 8 | Комментарий | 150px | Текст комментария |
-| 9 | Файлы | 250px | Список файлов в `<textarea>` |
+| 1 | Документ | 120px | Имя документа (ссылка на форму) |
+| 2 | Полный путь | 250px | Путь: `Корень › Подпапка › Папка` |
+| 3 | Статус | 90px | Цветной бейдж статуса |
+| 4 | Файлы | 50px | Формат: `attached/required` |
+| 5 | Начало | 90px | start_date |
+| 6 | Окончание | 90px | planned_end_date |
+| 7 | Дни | 40px | planned_days |
+| 8 | Due Date | 90px | due_date или planned_end_date |
+| 9 | Ответственный | 120px | ФИО сотрудника |
 
 ### renderTableView()
 
 ```javascript
 renderTableView() {
-    let html = '<table class="pd-table"><thead><tr>';
-    html += '<th style="min-width:200px">Путь</th>';
-    html += '<th style="min-width:150px">Документ</th>';
-    // ... остальные колонки
-    html += '</tr></thead><tbody>';
-
+    if (!this.tableData.length) {
+        return '<div class="pd-empty"><div class="pd-empty-icon">📭</div><div>Нет документов в проекте</div></div>';
+    }
+    let html = '<div class="pd-table-container"><table class="pd-table">';
+    html += '<thead><tr><th>Документ</th><th>Полный путь</th><th>Статус</th><th>Файлы</th><th>Начало</th><th>Окончание</th><th>Дни</th><th>Due Date</th><th>Ответственный</th></tr></thead>';
+    html += '<tbody>';
     this.tableData.forEach(doc => {
+        const fullPath = this.buildFullPath(doc);
         html += '<tr>';
-        html += '<td>' + this.buildFullPath(doc) + '</td>';
-        html += '<td><a href="/app/project-documents/' + doc.name + '">' + doc.name + '</a></td>';
+        html += '<td><a href="/app/document/' + doc.name + '" class="pd-table-link">' + doc.name + '</a></td>';
+        html += '<td>' + fullPath + '</td>';
         html += '<td>' + this.renderStatusBadge(doc.readiness_status) + '</td>';
-        // ... остальные ячейки
+        html += '<td>' + this.renderFilesCell(doc) + '</td>';
+        html += '<td>' + this.renderDate(doc.start_date) + '</td>';
+        html += '<td>' + this.renderDate(doc.planned_end_date) + '</td>';
+        html += '<td>' + this.renderPlannedDays(doc.planned_days) + '</td>';
+        html += '<td>' + this.renderDueDate(doc) + '</td>';
+        html += '<td>' + this.renderResponsible(doc.responsible_employee) + '</td>';
         html += '</tr>';
     });
-
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     return html;
 }
 ```
 
 ### buildFullPath()
 
-Строит путь из иерархии папок:
+Строит путь из иерархии папок используя поля `level_1` — `level_5`:
 
 ```javascript
 buildFullPath(doc) {
     const parts = [];
-    if (doc.folder_structure_template) {
-        const fstParts = doc.folder_structure_template.split('/');
-        fstParts.forEach(fstId => {
-            const folderName = this.folderNames[fstId] || fstId;
-            parts.push(folderName);
-        });
+    for (let i = 1; i <= 5; i++) {
+        const fstId = doc["level_" + i];
+        if (fstId) {
+            const name = this.folderNames[fstId] || fstId;
+            parts.push('<span class="pd-path-part">' + name + '</span>');
+        }
     }
-    return parts.join(' › ') || 'Без папки';
+    return parts.length ? parts.join(' <span class="pd-path-sep">›</span> ') : '-';
 }
 ```
+
+### renderFilesCell()
+
+Показывает количество прикреплённых файлов к ожидаемому:
+
+```javascript
+renderFilesCell(doc) {
+    const attached = doc.files_count || 0;
+    const required = doc.expected_files || 1;
+    const isComplete = attached >= required;
+    const textColor = isComplete ? "#16a34a" : "#d97706";
+    return '<span style="color:' + textColor + ';font-weight:500">' + attached + '/' + required + '</span>';
+}
+```
+
+#### Индикатор прогресса файлов (CSS)
+
+В HTML-шаблоне определены стили для визуального прогресс-бара:
+
+```css
+/* Прогресс-бар файлов */
+.pd-files-progress {
+    width: 50px;
+    height: 6px;
+    background: var(--gray-200);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.pd-files-progress-bar {
+    height: 100%;
+    border-radius: 3px;
+}
+/* Цветовая градация по заполненности */
+.pd-files-progress-bar.low { background: #ef4444; }    /* < 33% - красный */
+.pd-files-progress-bar.medium { background: #f59e0b; } /* 33-66% - оранжевый */
+.pd-files-progress-bar.high { background: #22c55e; }   /* > 66% - зелёный */
+```
+
+**Примечание:** Визуальный прогресс-бар подготовлен в CSS, но в текущей версии JS используется текстовое отображение `attached/required`.
 
 ### renderResponsible()
 
 Отображает ФИО сотрудника вместо ID:
 
 ```javascript
-renderResponsible(doc) {
-    if (!doc.responsible_employee) return '';
-    return this.employeeNames[doc.responsible_employee] || doc.responsible_employee;
+renderResponsible(employee) {
+    if (!employee) return '<span style="color:#9ca3af">—</span>';
+    const displayName = this.employeeNames[employee] || employee;
+    return '<a href="/app/employee/' + employee + '" style="color:#2563eb;text-decoration:none" title="' + employee + '">' + displayName + '</a>';
 }
 ```
 
@@ -300,18 +387,49 @@ renderResponsible(doc) {
 
 ## Tree View (Древовидный вид)
 
+### Hover-эффекты
+
+Tree View использует каскадные hover-эффекты для улучшения UX:
+
+```css
+/* Hover на папку */
+.pd-tree-node-content:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+/* Hover на папку выделяет всю ветку дочерних элементов */
+.pd-tree-node:hover > .pd-tree-children {
+    background: rgba(59, 130, 246, 0.04); /* Синеватая подсветка */
+    border-radius: 4px;
+}
+
+/* Hover на документ */
+.pd-tree-document:hover {
+    background: #eff6ff; /* Светло-синий */
+}
+```
+
+### Анимации сворачивания/разворачивания
+
+Для плавности UX используются jQuery-анимации:
+
+| Действие | Метод | Длительность |
+|----------|-------|-------------|
+| Сворачивание | `slideUp(150)` | 150ms |
+| Разворачивание | `slideDown(150)` | 150ms |
+
 ### Структура данных
 
 ```javascript
 treeData = {
-    "FST-001": {
+    "FST-0001": {
         name: "Корневая папка",
         children: {
-            "FST-002": {
+            "FST-0004": {
                 name: "Подпапка",
                 children: {},
                 documents: [
-                    { name: "DOC-001", readiness_status: "approved", ... }
+                    { name: "DOC-2025-00001", readiness_status: "approved", ... }
                 ]
             }
         },
@@ -324,7 +442,14 @@ treeData = {
 
 ```javascript
 renderTreeView() {
-    let html = '<div class="pd-tree">';
+    if (!this.treeData || !Object.keys(this.treeData).length) {
+        return '<div class="pd-empty"><div class="pd-empty-icon">🌲</div><div>Структура пуста</div></div>';
+    }
+    let html = '<div class="pd-tree-toolbar">';
+    html += '<button class="btn btn-xs btn-default pd-btn-expand-all">Развернуть всё</button> ';
+    html += '<button class="btn btn-xs btn-default pd-btn-collapse-all">Свернуть всё</button>';
+    html += '</div>';
+    html += '<div class="pd-tree-container">';
     Object.entries(this.treeData).forEach(([fstId, folder]) => {
         html += this.renderTreeNode(fstId, folder, 0);
     });
@@ -384,7 +509,7 @@ renderTreeDocument(doc, level) {
     html += '<span class="pd-tree-toggle empty"></span>';
     html += '<span class="pd-tree-icon">📄</span>';
     html += '<span class="pd-tree-doc-name">' + doc.name + '</span>';
-    html += ' <span style="...inline styles...">' + statusLabel + '</span>';
+    html += ' <span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;' + this.getStatusStyle(doc.readiness_status) + '">(' + statusLabel + ')</span>';
     html += '</div>';
     return html;
 }
@@ -451,9 +576,20 @@ getStatusStyle(status) {
 
 ## CSS стили
 
+### Архитектура CSS (два источника)
+
+CSS стили находятся в **двух местах**:
+
+| Источник | Файл | Назначение |
+|----------|------|------------|
+| `injectStyles()` | project_documents.js | Динамическая инъекция (гарантированная загрузка) |
+| `<style>` блок | project_documents.html | Fallback / полные стили (276 строк) |
+
+**Причина дублирования:** Frappe не всегда корректно загружает CSS из HTML-файла страницы. Решение - динамическая инъекция критических стилей через JavaScript.
+
 ### Важно: CSS инъекция
 
-Frappe не всегда загружает CSS из `project_documents.html`. Поэтому все стили дублируются в методе `injectStyles()`.
+Критические стили инжектируются в методе `injectStyles()` с уникальным ID для предотвращения повторной вставки:
 
 ### Основные классы
 
@@ -503,18 +639,29 @@ Custom Page использует два API метода из `company_documents
 
 ```python
 @frappe.whitelist()
-def get_project_document_overview(project: str) -> list:
-    """Плоский список документов проекта"""
-    return frappe.get_all(
-        "Project Documents",
+def get_project_document_overview(project):
+    """
+    Получить обзор документов проекта в плоском виде.
+    Оптимизировано: 2 SQL запроса вместо N+1
+    """
+    docs = frappe.get_all(
+        "Document",  # ← DocType называется "Document"
         filters={"project": project},
         fields=[
-            "name", "document_name", "readiness_status",
-            "due_date", "request_date", "planned_days",
-            "responsible_employee", "comment", "files",
-            "folder_structure_template"
-        ]
+            "name", "project",
+            "level_1", "level_2", "level_3", "level_4", "level_5",
+            "readiness_status",
+            "start_date", "planned_days", "planned_end_date",
+            "due_date", "overdue",
+            "expected_files", "files_count",
+            "responsible_employee"
+        ],
+        order_by="creation desc"
     )
+    
+    # ... загрузка файлов отдельным запросом ...
+    
+    return docs  # list с files[] для каждого документа
 ```
 
 ### get_project_document_tree()
@@ -523,13 +670,13 @@ def get_project_document_overview(project: str) -> list:
 
 ```python
 @frappe.whitelist()
-def get_project_document_tree(project: str) -> dict:
-    """Иерархическая структура документов"""
-    # ... построение дерева ...
+def get_project_document_tree(project):
+    """Получить документы проекта в виде дерева папок."""
+    # ... построение дерева по level_1 → level_2 → ... ...
     return {
-        "tree": tree,
-        "folder_names": folder_names,
-        "employee_names": employee_names  # Добавлено в v0.0.2.7
+        "tree": tree,               # Иерархическая структура
+        "folder_names": folder_names,    # {fst_id: folder_name}
+        "employee_names": employee_names # {emp_id: full_name}
     }
 ```
 
@@ -542,6 +689,25 @@ def get_project_document_tree(project: str) -> dict:
 ```
 
 После выбора проекта в селекторе отображаются документы в выбранном режиме просмотра.
+
+### URL параметр для предвыбора проекта
+
+Страница поддерживает передачу проекта через URL параметр:
+
+```
+/app/project-documents?project=PROJ-00001
+```
+
+Реализация в `renderProjectSelector()`:
+
+```javascript
+const urlProject = frappe.utils.get_url_arg("project");
+if (urlProject) {
+    this.projectField.set_value(urlProject);
+}
+```
+
+При наличии параметра `project` в URL, проект автоматически выбирается в селекторе и загружаются его документы.
 
 ---
 
@@ -557,7 +723,7 @@ def get_project_document_tree(project: str) -> dict:
 
 - Frappe v15.89.0+
 - ERPNext v15.83.0+
-- DocTypes: `Project Documents`, `Folder Structure Template`, `Project`, `Employee`
+- DocTypes: `Document`, `Folder Structure Template`, `Project`, `Employee`
 
 ---
 

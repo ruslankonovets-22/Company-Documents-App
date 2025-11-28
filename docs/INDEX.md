@@ -45,7 +45,7 @@
    - Git workflow
 
 6. **[NEXTCLOUD_SYNC.md](NEXTCLOUD_SYNC.md)** - NextCloud синхронизация
-   - Архитектура nextcloud_sync.py (473 строки)
+   - Архитектура nextcloud_sync.py (644 строки)
    - Функция get_nextcloud_config()
    - WebDAV операции (MKCOL, PUT, MOVE, DELETE)
    - Структура путей файлов в NextCloud

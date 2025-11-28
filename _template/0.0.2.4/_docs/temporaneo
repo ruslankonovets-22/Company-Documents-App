@@ -1,0 +1,131 @@
+🛠️ Пример реализации для вашего случая
+CONFIDENT (на основе вашего API и ROADMAP):
+
+JavaScript
+// project_documents.js
+
+frappe.pages['project-documents'].on_page_load = function(wrapper) {
+    const page = frappe.ui.make_app_page({
+        parent: wrapper,
+        title: __('Project Documents Overview'),
+        single_column: true
+    });
+
+    // Состояние страницы
+    let current_view = 'table';
+    let current_project = null;
+
+    // === ФИЛЬТРЫ ===
+    page.add_field({
+        fieldname: 'project',
+        label: __('Project'),
+        fieldtype: 'Link',
+        options: 'Project',
+        reqd: 1,
+        change: () => {
+            current_project = page.fields_dict.project.get_value();
+            refresh_data();
+        }
+    });
+
+    // === КНОПКИ ПЕРЕКЛЮЧЕНИЯ VIEW ===
+    page.add_inner_button(__('Table View'), () => {
+        current_view = 'table';
+        refresh_data();
+    }, __('View'));
+
+    page. add_inner_button(__('Tree View'), () => {
+        current_view = 'tree';
+        refresh_data();
+    }, __('View'));
+
+    // === КОНТЕЙНЕР ДЛЯ ДАННЫХ ===
+    page.$data = $('<div class="documents-data-container">'). appendTo(page. body);
+
+    // === ФУНКЦИИ ===
+    
+    function refresh_data() {
+        if (! current_project) {
+            page.$data.html('<p class="text-muted">Select a project</p>');
+            return;
+        }
+
+        page.$data.html('<p>Loading... </p>');
+
+        if (current_view === 'table') {
+            load_table_view();
+        } else {
+            load_tree_view();
+        }
+    }
+
+    function load_table_view() {
+        // Используем ваш готовый API
+        frappe.call({
+            method: 'company_documents.api.get_project_document_overview',
+            args: { project: current_project },
+            callback: (r) => {
+                render_table(r. message);
+            }
+        });
+    }
+
+    function load_tree_view() {
+        // Используем ваш готовый API для дерева
+        frappe.call({
+            method: 'company_documents.api.get_project_document_tree',
+            args: { project: current_project },
+            callback: (r) => {
+                render_tree(r.message);
+            }
+        });
+    }
+
+    function render_table(data) {
+        // Жёстко заданные колонки (пользователь не может менять)
+        const columns = [
+            { label: 'Document', fieldname: 'name', width: 120 },
+            { label: 'Level 1', fieldname: 'level_1', width: 150 },
+            { label: 'Level 2', fieldname: 'level_2', width: 150 },
+            { label: 'Status', fieldname: 'readiness_status', width: 100 },
+            { label: 'Files', fieldname: 'files_progress', width: 80 },
+            { label: 'Due Date', fieldname: 'planned_end_date', width: 100 },
+            { label: 'Overdue', fieldname: 'overdue', width: 70 },
+        ];
+
+        // Подготовить данные
+        data.forEach(row => {
+            row.files_progress = `${row.files_count || 0}/${row.expected_files || 1}`;
+        });
+
+        // Использовать Frappe DataTable
+        new frappe.DataTable(page.$data. get(0), {
+            columns: columns,
+            data: data,
+            layout: 'fixed',  // Фиксированный layout
+            noDataMessage: __('No documents found')
+        });
+    }
+
+    function render_tree(tree_data) {
+        // Рендер дерева (упрощённый пример)
+        let html = '<ul class="tree-view">';
+        
+        function render_node(node, level = 0) {
+            const indent = level * 20;
+            html += `<li style="margin-left: ${indent}px">
+                <strong>${node.name}</strong>
+                ${node.documents ?  `(${node.documents. length} docs)` : ''}
+            </li>`;
+            
+            if (node.children) {
+                node. children.forEach(child => render_node(child, level + 1));
+            }
+        }
+
+        tree_data.forEach(node => render_node(node));
+        html += '</ul>';
+        
+        page.$data.html(html);
+    }
+};

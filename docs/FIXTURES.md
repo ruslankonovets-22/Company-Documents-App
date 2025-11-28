@@ -1,7 +1,7 @@
 # 📦 Fixtures - Конфигурация и экспорт
 
-**Версия:** v0.0.2.6  
-**Дата:** 2025-11-26  
+**Версия:** v0.0.2.7  
+**Дата:** 2025-11-28  
 **Файл:** company_documents/hooks.py
 
 ---
@@ -333,10 +333,10 @@ PYEOF'
 
 ```
 company_documents/fixtures/
-├── doctype.json                      # 9 DocTypes
+├── doctype.json                      # 5 DocTypes
 ├── server_script.json                # 5 Server Scripts
 ├── client_script.json                # 7 Client Scripts
-├── folder_structure_template.json    # 45 шаблонов
+├── folder_structure_template.json    # 84 шаблона
 ├── custom_field.json                 # Кастомные поля
 ├── property_setter.json              # Настройки свойств
 ├── document_naming_rule.json         # Правила нумерации

@@ -1,7 +1,7 @@
 # 🤖 AI Knowledge Base - Company Documents App
 
-**Версия проекта:** v0.0.2.4  
-**Дата создания:** 2025-11-22  
+**Версия проекта:** v0.0.2.7  
+**Дата создания:** 2025-11-28  
 **Назначение:** Comprehensive guide для обучения AI ассистентов работе с проектом
 
 ---
@@ -50,15 +50,15 @@ Company-Documents-App/
 ├── company_documents/              # Основной Python модуль
 │   ├── __init__.py                 # Версия приложения
 │   ├── hooks.py                    # Конфигурация Frappe hooks
-│   ├── nextcloud_sync.py           # NextCloud синхронизация (636 строк)
+│   ├── nextcloud_sync.py           # NextCloud синхронизация (644 строки)
 │   ├── modules.txt                 # Список модулей (Documents)
 │   ├── patches.txt                 # Миграции (пусто в v0.0.2)
 │   │
 │   ├── fixtures/                   # Данные для установки
-│   │   ├── doctype.json            # 9 DocTypes (~87 KB)
+│   │   ├── doctype.json            # 5 DocTypes (~87 KB)
 │   │   ├── server_script.json      # 5 Server Scripts (~18 KB)
 │   │   ├── client_script.json      # 7 Client Scripts (~12 KB)
-│   │   ├── folder_structure_template.json  # 45 шаблонов (~17 KB)
+│   │   ├── folder_structure_template.json  # 84 шаблона (~17 KB)
 │   │   ├── custom_field.json       # Custom Fields (2 байт - пусто)
 │   │   ├── property_setter.json    # Property Setters (2 байт - пусто)
 │   │   ├── document_naming_rule.json  # Правила нумерации (296 байт)
@@ -587,7 +587,7 @@ bench --site localhost console
 
 # Проверить Folder Structure Template
 >>> frappe.get_list("Folder Structure Template")
-# Должно быть 45 записей
+# Должно быть 84 записи
 ```
 
 ### 5.4 Fixtures vs Migrations
