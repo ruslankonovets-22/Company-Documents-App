@@ -1,7 +1,7 @@
 # 📚 Документация Company Documents App v0.0.2
 
-**Версия:** v0.0.2.6  
-**Дата:** 2025-11-26  
+**Версия:** v0.0.2.7  
+**Дата:** 2025-01-21  
 **Статус:** Development (Testing Phase)
 
 ---
@@ -17,40 +17,48 @@
    - Server Scripts и Client Scripts
    - NextCloud Sync Settings (Single DocType)
 
-2. **[API.md](API.md)** - API Reference ⚠️ **НОВЫЙ v0.0.2.6**
+2. **[API.md](API.md)** - API Reference
    - `get_project_document_overview()` — flat-список для таблиц
    - `get_project_document_tree()` — иерархия для Tree View
    - Примеры использования (Python, JavaScript, curl)
    - Тестирование производительности
 
-3. **[DOCUMENT_LOGIC.md](DOCUMENT_LOGIC.md)** - Логика DocType Document ⚠️ **НОВЫЙ v0.0.2.6**
+3. **[CUSTOM_PAGE.md](CUSTOM_PAGE.md)** - Custom Page "Project Documents" ⚠️ **НОВЫЙ v0.0.2.7**
+   - Архитектура страницы (JSON, HTML, JS)
+   - JavaScript Controller (ProjectDocumentsController)
+   - Table View (9 колонок) и Tree View
+   - CSS инъекция через JavaScript
+   - Статусы документов и цветовая схема
+   - API интеграция
+
+4. **[DOCUMENT_LOGIC.md](DOCUMENT_LOGIC.md)** - Логика DocType Document
    - Архитектурные решения и их причины
    - Автоматические расчёты (validate hook)
    - Уровни папок (level_1..5)
    - Связь с Folder Structure Template
 
-4. **[DEVELOPMENT.md](DEVELOPMENT.md)** - Разработка
+5. **[DEVELOPMENT.md](DEVELOPMENT.md)** - Разработка
    - Подход к разработке (ПОЛИГОН)
    - Docker workflow
    - Редактирование файлов в контейнере
    - Python команды и Frappe console
    - Git workflow
 
-5. **[NEXTCLOUD_SYNC.md](NEXTCLOUD_SYNC.md)** - NextCloud синхронизация
+6. **[NEXTCLOUD_SYNC.md](NEXTCLOUD_SYNC.md)** - NextCloud синхронизация
    - Архитектура nextcloud_sync.py (473 строки)
    - Функция get_nextcloud_config()
    - WebDAV операции (MKCOL, PUT, MOVE, DELETE)
    - Структура путей файлов в NextCloud
    - Single DocType для хранения настроек
 
-6. **[DOCKER_SETUP.md](DOCKER_SETUP.md)** - Docker установка
+7. **[DOCKER_SETUP.md](DOCKER_SETUP.md)** - Docker установка
    - Структура apps.json
    - Архитектура Containerfile
    - Сервисы compose.yaml
    - Порядок установки приложений
    - Маппинг портов
 
-7. **[FIXTURES.md](FIXTURES.md)** - Конфигурация Fixtures
+8. **[FIXTURES.md](FIXTURES.md)** - Конфигурация Fixtures
    - Текущая конфигурация hooks.py
    - Корректный фильтр: `["app", "=", "company_documents"]`
    - Проблемы с фильтрами и их решения
@@ -59,7 +67,7 @@
 
 ### 🔧 Внутренние механизмы (Internals)
 
-8. **[internals/FIXTURES_MECHANICS.md](internals/FIXTURES_MECHANICS.md)**
+9. **[internals/FIXTURES_MECHANICS.md](internals/FIXTURES_MECHANICS.md)**
    - Механизм работы fixtures при установке
    - Последовательность импорта (9 типов)
    - Описание каждого fixture (DocType, Server Script, Client Script, FST, Naming Rule)
@@ -67,7 +75,7 @@
    - Механизм обновления при переустановке
    - Процедуры сброса и управления
 
-9. **[internals/NAMING_MECHANISM.md](internals/NAMING_MECHANISM.md)**
+10. **[internals/NAMING_MECHANISM.md](internals/NAMING_MECHANISM.md)**
    - Иерархия источников счётчика (Document Naming Rule → tabSeries → cache)
    - Алгоритм генерации номера документа
    - Таблицы БД (tabDocument Naming Rule, tabSeries)
@@ -77,7 +85,7 @@
 
 ### 🤖 Документация для GitHub Copilot
 
-10. **[copilot/GUIDELINES.md](copilot/GUIDELINES.md)** ⭐ **КРИТИЧНЫЙ ФАЙЛ**
+11. **[copilot/GUIDELINES.md](copilot/GUIDELINES.md)** ⭐ **КРИТИЧНЫЙ ФАЙЛ**
    - Уровни уверенности (CERTAIN, CONFIDENT, UNCERTAIN, DON'T KNOW)
    - Технический стек и версии
    - Критичные правила (NEVER/ALWAYS)
@@ -89,7 +97,7 @@
    - Подход к разработке (ПОЛИГОН)
    - Типичные проблемы и решения
 
-11. **[copilot/COMMON_COMMANDS.md](copilot/COMMON_COMMANDS.md)**
+12. **[copilot/COMMON_COMMANDS.md](copilot/COMMON_COMMANDS.md)**
    - Часто используемые команды
    - Готовые к копированию примеры
    - Редактирование файлов (heredoc)
@@ -101,7 +109,7 @@
 
 ### 📝 История изменений
 
-12. **[../CHANGELOG.md](../CHANGELOG.md)** - История версий
+13. **[../CHANGELOG.md](../CHANGELOG.md)** - История версий
    - v0.0.2 (2025-11-20) - Текущая версия
    - v0.0.1 (2025-09-04) - Начальная версия
 

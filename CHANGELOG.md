@@ -8,6 +8,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 
+## [0.0.2.7] - 2025-01-21
+
+### Added
+- **Custom Page "Project Documents"**: Интерактивная страница для просмотра документов проекта
+  - Table View: 9 колонок (Путь, Документ, Статус, Дедлайн, Дата запроса, План дней, Ответственный, Комментарий, Файлы)
+  - Tree View: Иерархическое отображение с collapse/expand папок
+  - Переключение видов кнопками
+  - Цветные статус-бейджи для 6 статусов документов
+  - CSS инъекция через JavaScript для надёжной загрузки стилей
+  - Файлы: `project_documents.json`, `project_documents.html`, `project_documents.js`
+  - URL: `/app/project-documents`
+- **Employee Names в API**: Метод `get_project_document_tree()` теперь возвращает `employee_names` словарь
+  - Формат: `{employee_id: full_name}`
+  - Используется в Custom Page для отображения ФИО вместо ID
+- **Документация CUSTOM_PAGE.md**: Полная техническая документация Custom Page (~600 строк)
+  - Архитектура и взаимодействие компонентов
+  - Описание всех методов JavaScript контроллера
+  - CSS классы и стили
+  - API интеграция
+
+### Changed
+- Обновлена версия во всех файлах документации до v0.0.2.7
+- Обновлён INDEX.md с добавлением CUSTOM_PAGE.md (пункт 3)
+- Обновлён API.md с документацией поля `employee_names`
+
+### Files Added
+- `company_documents/documents/page/project_documents/__init__.py`
+- `company_documents/documents/page/project_documents/project_documents.json`
+- `company_documents/documents/page/project_documents/project_documents.html`
+- `company_documents/documents/page/project_documents/project_documents.js`
+- `docs/CUSTOM_PAGE.md`
+- `_template/0.0.2.4/INSTALL_0.0.2.4/SSH_INSTALL_TEST2.sh`
+
+---
+
+
 ## [0.0.2.4] - 2025-11-22 🎉 PRODUCTION READY!
 
 **Статус:** Полностью рабочая версия - всё работает из коробки после установки!
