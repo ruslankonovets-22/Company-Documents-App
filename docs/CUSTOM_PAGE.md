@@ -136,6 +136,71 @@ class ProjectDocumentsController {
 3. `setupContent()` - создание контейнера
 4. `renderProjectSelector()` - рендер выбора проекта
 
+### setupHeader()
+
+Добавляет кнопку "Обновить" в заголовок страницы:
+
+```javascript
+setupHeader() {
+    this.page.add_inner_button("Обновить", () => this.loadData());
+}
+```
+
+### setupContent()
+
+Создаёт основной контейнер для контента:
+
+```javascript
+setupContent() {
+    this.$page.html('<div id="pd-main-content"></div>');
+    this.$content = this.$page.find("#pd-main-content");
+}
+```
+
+### renderProjectSelector()
+
+Рендерит селектор выбора проекта с использованием Frappe Link Control:
+
+```javascript
+renderProjectSelector() {
+    let html = '<div class="pd-project-selector">';
+    html += '<div class="pd-selector-label">Выберите проект:</div>';
+    html += '<div class="pd-selector-field"></div>';
+    html += '</div>';
+    this.$content.html(html);
+    
+    this.projectField = frappe.ui.form.make_control({
+        df: {
+            fieldtype: "Link",
+            fieldname: "project",
+            options: "Project",
+            placeholder: "Выберите проект...",
+            change: () => {
+                const val = this.projectField.get_value();
+                if (val) {
+                    this.currentProject = val;
+                    this.loadData();
+                }
+            }
+        },
+        parent: this.$content.find(".pd-selector-field"),
+        render_input: true
+    });
+    this.projectField.$wrapper.addClass("pd-project-link");
+    
+    // Поддержка URL параметра для предвыбора
+    const urlProject = frappe.utils.get_url_arg("project");
+    if (urlProject) {
+        this.projectField.set_value(urlProject);
+    }
+}
+```
+
+**Особенности:**
+- Использует `frappe.ui.form.make_control` для создания Link поля
+- При выборе проекта автоматически вызывает `loadData()`
+- Поддерживает URL параметр `?project=PROJ-XXX`
+
 ### injectStyles()
 
 **Критически важный метод!** Frappe не всегда корректно загружает CSS из HTML-файла страницы. Решение - динамическая инъекция через JavaScript:
@@ -331,6 +396,75 @@ buildFullPath(doc) {
     return parts.length ? parts.join(' <span class="pd-path-sep">›</span> ') : '-';
 }
 ```
+
+### renderStatusBadge()
+
+Рендерит цветной бейдж статуса документа (используется в Table View):
+
+```javascript
+renderStatusBadge(status) {
+    const labels = {
+        missing: "Отсутствует",
+        partial: "Частично",
+        requested: "Запрошен",
+        in_progress: "В работе",
+        ready_for_review: "На проверке",
+        approved: "Утверждён"
+    };
+    const styles = {
+        missing: "background:#fee2e2;color:#dc2626",
+        partial: "background:#ffedd5;color:#ea580c",
+        requested: "background:#fef3c7;color:#d97706",
+        in_progress: "background:#e0e7ff;color:#4f46e5",
+        ready_for_review: "background:#dbeafe;color:#2563eb",
+        approved: "background:#dcfce7;color:#16a34a"
+    };
+    const style = styles[status] || styles.missing;
+    return '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;' + style + '">' + (labels[status] || status || "—") + '</span>';
+}
+```
+
+### renderDueDate()
+
+Рендерит Due Date с индикацией просрочки:
+
+```javascript
+renderDueDate(doc) {
+    const dateValue = doc.due_date || doc.planned_end_date;
+    if (!dateValue) return '-';
+    const date = frappe.datetime.str_to_user(dateValue);
+    if (doc.overdue) return '<span style="color:#dc2626;font-weight:600">' + date + ' ⚠️</span>';
+    return '<span>' + date + '</span>';
+}
+```
+
+**Логика:**
+- Использует `due_date`, если нет - `planned_end_date`
+- Если `doc.overdue === true` - красный цвет + эмодзи ⚠️
+
+### renderDate()
+
+Универсальный рендер даты:
+
+```javascript
+renderDate(dateValue) {
+    if (!dateValue) return '<span style="color:#9ca3af">—</span>';
+    return frappe.datetime.str_to_user(dateValue);
+}
+```
+
+### renderPlannedDays()
+
+Рендерит количество запланированных дней:
+
+```javascript
+renderPlannedDays(days) {
+    if (!days && days !== 0) return '<span style="color:#9ca3af">—</span>';
+    return '<span style="font-weight:500">' + days + '</span>';
+}
+```
+
+**Примечание:** Проверка `days !== 0` позволяет отображать 0 дней (а не прочерк).
 
 ### renderFilesCell()
 
