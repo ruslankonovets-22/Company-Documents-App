@@ -1,0 +1,24 @@
+{
+ "content": null,
+ "creation": "2025-11-27 08:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Page",
+ "icon": "file-document",
+ "modified": "2025-11-27 08:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Documents",
+ "name": "project-documents",
+ "owner": "Administrator",
+ "page_name": "project-documents",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Projects User"
+  }
+ ],
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "Project Documents"
+}

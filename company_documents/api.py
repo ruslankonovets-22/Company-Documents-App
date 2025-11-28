@@ -150,6 +150,21 @@ def get_project_document_tree(project):
         )
         folder_names = {f.name: f.folder_name for f in fst_data}
     
+    # Получаем имена сотрудников одним запросом
+    employee_ids = set()
+    for doc in docs:
+        if doc.get("responsible_employee"):
+            employee_ids.add(doc["responsible_employee"])
+    
+    employee_names = {}
+    if employee_ids:
+        emp_data = frappe.get_all(
+            "Employee",
+            filters={"name": ["in", list(employee_ids)]},
+            fields=["name", "employee_name"]
+        )
+        employee_names = {e.name: e.employee_name for e in emp_data}
+    
     # Строим дерево
     tree = {}
     
@@ -192,7 +207,8 @@ def get_project_document_tree(project):
     return {
         "project": project,
         "tree": tree,
-        "folder_names": folder_names
+        "folder_names": folder_names,
+        "employee_names": employee_names
     }
 
 

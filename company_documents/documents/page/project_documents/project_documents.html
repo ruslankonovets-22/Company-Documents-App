@@ -1,0 +1,275 @@
+<div class="project-documents-page"></div>
+
+<style>
+/* Project Selector */
+.pd-project-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    padding: 40px;
+}
+.pd-selector-label {
+    font-size: 18px;
+    margin-bottom: 20px;
+    color: var(--text-muted);
+}
+.pd-selector-field {
+    width: 100%;
+    max-width: 400px;
+}
+.pd-project-info {
+    font-size: 16px;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: var(--border-radius);
+}
+.pd-project-info:hover {
+    background: var(--bg-light-gray);
+}
+
+/* Header */
+.pd-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 0 5px;
+}
+.pd-view-buttons {
+    display: flex;
+    gap: 5px;
+}
+.pd-view-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+}
+.pd-view-btn:hover {
+    background: var(--bg-light-gray);
+}
+.pd-view-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* Content */
+.pd-content {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+.pd-loading, .pd-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    color: var(--text-muted);
+}
+.pd-empty-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+/* Status Badges */
+.pd-status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+}
+.pd-status-badge.missing { background: #fee2e2; color: #dc2626; }
+.pd-status-badge.partial { background: #ffedd5; color: #ea580c; }
+.pd-status-badge.complete { background: #dbeafe; color: #2563eb; }
+.pd-status-badge.approved { background: #dcfce7; color: #16a34a; }
+.pd-status-badge.not-applicable { background: #f3f4f6; color: #6b7280; }
+.pd-status-badge.requested { background: #fef3c7; color: #d97706; }
+.pd-status-badge.in-progress { background: #e0e7ff; color: #4f46e5; }
+
+/* Path */
+.pd-path-part { color: var(--text-color); }
+.pd-path-sep { color: var(--text-muted); margin: 0 3px; }
+
+/* Files */
+.pd-files-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.pd-files-progress {
+    width: 50px;
+    height: 6px;
+    background: var(--gray-200);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.pd-files-progress-bar {
+    height: 100%;
+    border-radius: 3px;
+}
+.pd-files-progress-bar.low { background: #ef4444; }
+.pd-files-progress-bar.medium { background: #f59e0b; }
+.pd-files-progress-bar.high { background: #22c55e; }
+.pd-files-count {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Dates */
+.pd-overdue { color: #dc2626; font-weight: 600; }
+.pd-date-ok { color: var(--text-color); }
+
+/* ==================== TREE VIEW ==================== */
+.pd-tree-toolbar {
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-light-gray);
+}
+.pd-tree-container {
+    padding: 10px 0;
+}
+
+/* Tree Node */
+.pd-tree-node {
+    /* No margin - indentation via padding */
+}
+.pd-tree-node-content {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 0;
+    transition: background 0.1s;
+}
+.pd-tree-node-content:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+/* Hover на папку выделяет всю ветку */
+.pd-tree-node:hover > .pd-tree-node-content {
+    background: rgba(0, 0, 0, 0.04);
+}
+.pd-tree-node:hover > .pd-tree-children {
+    background: rgba(59, 130, 246, 0.04);
+    border-radius: 4px;
+}
+
+/* Toggle Arrow */
+.pd-tree-toggle {
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 4px;
+    font-size: 10px;
+    color: var(--text-muted);
+    transition: transform 0.15s;
+    flex-shrink: 0;
+}
+.pd-tree-toggle.expanded {
+    transform: rotate(90deg);
+}
+.pd-tree-toggle.empty {
+    visibility: hidden;
+}
+
+/* Icons */
+.pd-tree-icon {
+    margin-right: 6px;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+/* Labels */
+.pd-tree-label {
+    flex: 1;
+    font-size: 13px;
+}
+.pd-tree-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--gray-100);
+    padding: 1px 6px;
+    border-radius: 8px;
+    margin-left: 8px;
+}
+
+/* Children container - NO left border/margin, indentation is in padding */
+.pd-tree-children {
+    /* empty - children handle their own indent */
+}
+
+/* Document in tree */
+.pd-tree-document {
+    display: flex;
+    align-items: center;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+.pd-tree-document:hover {
+    background: #eff6ff;
+}
+.pd-tree-doc-name {
+    flex: 1;
+    color: var(--primary);
+    font-size: 13px;
+}
+.pd-tree-doc-status {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+    font-weight: 500;
+}
+.pd-tree-doc-status.missing { background: #fee2e2; color: #dc2626; }
+.pd-tree-doc-status.partial { background: #ffedd5; color: #ea580c; }
+.pd-tree-doc-status.requested { background: #fef3c7; color: #d97706; }
+.pd-tree-doc-status.in_progress { background: #e0e7ff; color: #4f46e5; }
+.pd-tree-doc-status.ready_for_review { background: #dbeafe; color: #2563eb; }
+.pd-tree-doc-status.approved { background: #dcfce7; color: #16a34a; }
+
+/* ==================== TABLE VIEW ==================== */
+.pd-table-container {
+    overflow-x: auto;
+}
+.pd-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.pd-table th {
+    padding: 10px 12px;
+    text-align: left;
+    background: var(--bg-light-gray);
+    border-bottom: 2px solid var(--border-color);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.pd-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+}
+.pd-table tr:hover td {
+    background: var(--bg-light-gray);
+}
+.pd-table-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+.pd-table-link:hover {
+    text-decoration: underline;
+}
+</style>
